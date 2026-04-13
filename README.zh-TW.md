@@ -2,6 +2,8 @@
 
 [English README](./README.md)
 
+網站：https://raw2dng.maxlin.tw
+
 這個專案是為了讓在行動裝置上也能處理 RAW 檔。
 
 很多能良好處理 RAW 檔的專業軟體都需要付費，例如 Lightroom 或 Photomator。把 RAW 檔轉成開放的 DNG 格式之後，就能讓更多軟體支援與處理。

@@ -66,14 +66,14 @@ void configure_linear_output(LibRaw *processor) {
   }
 
   processor->imgdata.params.output_bps = 16;
-  processor->imgdata.params.output_color = LIBRAW_COLORSPACE_CameraLinear;
+  processor->imgdata.params.output_color = LIBRAW_COLORSPACE_sRGB;
   processor->imgdata.params.use_camera_wb = 1;
   processor->imgdata.params.use_auto_wb = 0;
-  processor->imgdata.params.no_auto_bright = 1;
+  processor->imgdata.params.no_auto_bright = 0;
   processor->imgdata.params.no_auto_scale = 0;
   processor->imgdata.params.use_camera_matrix = 1;
-  processor->imgdata.params.gamm[0] = 1.0;
-  processor->imgdata.params.gamm[1] = 1.0;
+  processor->imgdata.params.gamm[0] = 0.45;
+  processor->imgdata.params.gamm[1] = 4.5;
   processor->imgdata.params.bright = 1.0f;
 }
 

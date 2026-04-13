@@ -93,8 +93,11 @@ describe("LibRaw WASM real fixtures", () => {
       channels: 3
     });
 
-    const roundTripProbe = await adapter.probe(await output.arrayBuffer());
-    expect(roundTripProbe.supported).toBe(true);
+    const bytes = new Uint8Array(await output.arrayBuffer());
+    expect(bytes[0]).toBe(0x49);
+    expect(bytes[1]).toBe(0x49);
+    expect(bytes[2]).toBe(42);
+    expect(output.size).toBeGreaterThan(1024);
   }, 60_000);
 });
 

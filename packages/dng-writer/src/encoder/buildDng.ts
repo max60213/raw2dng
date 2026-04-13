@@ -73,11 +73,14 @@ export function buildDng(input: DngBuildInput): Blob {
 }
 
 function buildEntries(input: DngBuildInput, imageByteLength: number): TagEntry[] {
+  const visibleWidth = input.metadata.activeArea[3] - input.metadata.activeArea[1];
+  const visibleHeight = input.metadata.activeArea[2] - input.metadata.activeArea[0];
+
   return [
-    shortTag(DNG_TAGS.newSubfileType, 0),
+    longTag(DNG_TAGS.newSubfileType, 0),
     longTag(DNG_TAGS.imageWidth, input.width),
     longTag(DNG_TAGS.imageLength, input.height),
-    shortTag(DNG_TAGS.bitsPerSample, input.bitDepth),
+    shortTag(DNG_TAGS.bitsPerSample, 16),
     shortTag(DNG_TAGS.compression, 1),
     shortTag(DNG_TAGS.photometricInterpretation, 32803),
     asciiTag(DNG_TAGS.make, input.metadata.make),
@@ -97,14 +100,14 @@ function buildEntries(input: DngBuildInput, imageByteLength: number): TagEntry[]
     shortTag(DNG_TAGS.whiteLevel, input.metadata.whiteLevel),
     rationalArrayTag(DNG_TAGS.defaultScale, [1, 1]),
     shortArrayTag(DNG_TAGS.defaultCropOrigin, [0, 0]),
-    shortArrayTag(DNG_TAGS.defaultCropSize, [input.width, input.height]),
+    shortArrayTag(DNG_TAGS.defaultCropSize, [visibleWidth, visibleHeight]),
     srationalArrayTag(DNG_TAGS.colorMatrix1, input.metadata.colorMatrix1),
     rationalArrayTag(DNG_TAGS.asShotNeutral, input.metadata.asShotNeutral),
     shortTag(DNG_TAGS.calibrationIlluminant1, input.metadata.calibrationIlluminant1),
     longArrayTag(DNG_TAGS.activeArea, input.metadata.activeArea),
     byteArrayTag(DNG_TAGS.cfaPlaneColor, [0, 1, 2]),
     shortTag(DNG_TAGS.cfaLayout, 1)
-  ];
+  ].sort((left, right) => left.id - right.id);
 }
 
 function shortTag(id: number, value: number): TagEntry {

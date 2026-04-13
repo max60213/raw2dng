@@ -36,10 +36,15 @@ describe("LibRaw WASM real fixtures", () => {
 
     expect(output.size).toBeGreaterThan(1024);
 
-    const roundTripProbe = await adapter.probe(await output.arrayBuffer());
+    const roundTripBytes = await output.arrayBuffer();
+    const roundTripProbe = await adapter.probe(roundTripBytes);
     expect(roundTripProbe.supported).toBe(true);
     expect(roundTripProbe.width).toBe(extraction.width);
     expect(roundTripProbe.height).toBe(extraction.height);
+
+    const roundTripExtraction = await adapter.extract(roundTripBytes);
+    expect(roundTripExtraction.width).toBe(extraction.width);
+    expect(roundTripExtraction.height).toBe(extraction.height);
   }, 60_000);
 
   it("probes and extracts a Canon CR2 sample", async () => {

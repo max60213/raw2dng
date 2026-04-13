@@ -17,6 +17,8 @@ interface PendingJob {
 export function useConversionController() {
   const capability = useMemo<CapabilityProfile>(() => detectCapabilityProfile(), []);
   const [tasks, setTasks] = useState<ConversionTask[]>([]);
+  const [runtimeStatus, setRuntimeStatus] = useState<"checking" | "ready" | "error">("checking");
+  const [runtimeMessage, setRuntimeMessage] = useState("Loading LibRaw WebAssembly runtime");
   const queueRef = useRef<PendingJob[]>([]);
   const activeJobIdsRef = useRef(new Set<string>());
   const workerRef = useRef<Worker | null>(null);
@@ -28,6 +30,18 @@ export function useConversionController() {
 
     worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
       const message = event.data;
+
+      if (message.type === "ready") {
+        setRuntimeStatus("ready");
+        setRuntimeMessage("LibRaw WebAssembly runtime is ready.");
+        return;
+      }
+
+      if (message.type === "runtime-error") {
+        setRuntimeStatus("error");
+        setRuntimeMessage(message.error);
+        return;
+      }
 
       setTasks((current) =>
         current.map((task) => {
@@ -71,6 +85,7 @@ export function useConversionController() {
     };
 
     workerRef.current = worker;
+    worker.postMessage({ type: "ping" });
     return () => worker.terminate();
   }, [capability]);
 
@@ -127,6 +142,8 @@ export function useConversionController() {
   return {
     capability,
     tasks,
+    runtimeStatus,
+    runtimeMessage,
     addFiles,
     downloadTask
   };

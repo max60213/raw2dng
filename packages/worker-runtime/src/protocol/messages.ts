@@ -7,6 +7,10 @@ export interface ConvertJobRequest {
   bytes: ArrayBuffer;
 }
 
+export interface RuntimePingRequest {
+  type: "ping";
+}
+
 export interface ConvertJobProgress {
   type: "progress";
   jobId: string;
@@ -31,5 +35,19 @@ export interface ConvertJobFailure {
   error: string;
 }
 
-export type WorkerRequest = ConvertJobRequest;
-export type WorkerResponse = ConvertJobProgress | ConvertJobSuccess | ConvertJobFailure;
+export interface RuntimeReady {
+  type: "ready";
+}
+
+export interface RuntimeUnavailable {
+  type: "runtime-error";
+  error: string;
+}
+
+export type WorkerRequest = ConvertJobRequest | RuntimePingRequest;
+export type WorkerResponse =
+  | ConvertJobProgress
+  | ConvertJobSuccess
+  | ConvertJobFailure
+  | RuntimeReady
+  | RuntimeUnavailable;

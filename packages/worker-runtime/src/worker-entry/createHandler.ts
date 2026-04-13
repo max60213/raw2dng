@@ -5,6 +5,19 @@ import type { WorkerRequest, WorkerResponse } from "../protocol/messages";
 
 export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => void) {
   return async function handleMessage(message: WorkerRequest): Promise<void> {
+    if (message.type === "ping") {
+      try {
+        await createLibRawAdapter();
+        postMessageFn({ type: "ready" });
+      } catch (error) {
+        postMessageFn({
+          type: "runtime-error",
+          error: error instanceof Error ? error.message : "Unknown worker runtime failure"
+        });
+      }
+      return;
+    }
+
     if (message.type !== "convert") {
       return;
     }

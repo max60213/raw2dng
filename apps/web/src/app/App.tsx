@@ -1,10 +1,11 @@
 import { CapabilitySummary } from "@web/components/CapabilitySummary";
 import { Dropzone } from "@web/components/Dropzone";
+import { RuntimeBanner } from "@web/components/RuntimeBanner";
 import { TaskList } from "@web/components/TaskList";
 import { useConversionController } from "@web/app/useConversionController";
 
 export function App() {
-  const { capability, tasks, addFiles, downloadTask } = useConversionController();
+  const { capability, tasks, runtimeStatus, runtimeMessage, addFiles, downloadTask } = useConversionController();
 
   return (
     <main className="app-shell">
@@ -17,8 +18,9 @@ export function App() {
         </p>
       </header>
 
+      <RuntimeBanner status={runtimeStatus} message={runtimeMessage} />
       <CapabilitySummary capability={capability} />
-      <Dropzone onFiles={addFiles} />
+      <Dropzone disabled={runtimeStatus !== "ready"} onFiles={addFiles} />
       <TaskList tasks={tasks} onDownload={downloadTask} />
     </main>
   );

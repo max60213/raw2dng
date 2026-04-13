@@ -32,6 +32,11 @@ Inspect round-trip DNG metadata with `exiftool`:
 bash scripts/exiftool-smoke.sh
 ```
 
+## Roadmap
+
+Future plans are tracked in [docs/roadmap.md](./docs/roadmap.md).
+The next major direction is moving the primary export flow to Adobe DNG SDK so the project can produce true Raw DNG instead of relying on the current custom output path.
+
 ## Project layout
 
 - `apps/web`: mobile-first React app

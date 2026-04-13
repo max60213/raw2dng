@@ -1,6 +1,10 @@
 # raw2dng
 
-Mobile-first browser tool for converting RAW files to DNG entirely on the client.
+This project exists so RAW files can be handled on mobile devices too.
+
+Many professional tools that handle RAW files well are paid, such as Lightroom or Photomator. Converting RAW files into the open DNG format makes them usable in a much wider range of software.
+
+P.S. This tool is specifically motivated by Google Snapseed. Snapseed is genuinely free and great to use, but its RAW support is limited enough that it pushed me to build this converter.
 
 ## Current status
 

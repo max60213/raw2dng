@@ -5,7 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildDng } from "../../packages/dng-writer/src";
-import { createLibRawAdapter } from "../../packages/libraw-wasm/src";
+import { GeneratedLibRawAdapter } from "../../packages/libraw-wasm/src/bindings/generatedAdapter";
+import { createGeneratedRuntimeNode } from "../../packages/libraw-wasm/src/loader/createGeneratedRuntimeNode";
+import { loadGeneratedModule } from "../../packages/libraw-wasm/src/loader/loadGeneratedModule";
 import { normalizeRawMetadata } from "../../packages/raw-core/src";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -102,7 +104,14 @@ describe("LibRaw WASM real fixtures", () => {
 });
 
 async function createAdapter() {
-  return createLibRawAdapter();
+  const factory = await loadGeneratedModule();
+  if (!factory) {
+    throw new Error("Generated LibRaw wasm module is unavailable.");
+  }
+  const runtime = await createGeneratedRuntimeNode(factory);
+  return new GeneratedLibRawAdapter(
+    runtime as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]
+  );
 }
 
 async function readFixture(fileName: string): Promise<ArrayBuffer> {

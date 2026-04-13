@@ -1,13 +1,12 @@
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import type { GeneratedFactory } from "./loadGeneratedModule";
 
-export async function createGeneratedRuntime(factory: GeneratedFactory): Promise<unknown> {
-  const url = new URL("../generated/libraw.wasm", import.meta.url);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to load LibRaw wasm: ${response.status} ${response.statusText}`);
-  }
-
-  const wasmBinary = new Uint8Array(await response.arrayBuffer());
+export async function createGeneratedRuntimeNode(
+  factory: GeneratedFactory
+): Promise<unknown> {
+  const wasmUrl = new URL("../generated/libraw.wasm", import.meta.url);
+  const wasmBinary = new Uint8Array(await readFile(fileURLToPath(wasmUrl)));
   const wasmBytes = wasmBinary.buffer.slice(
     wasmBinary.byteOffset,
     wasmBinary.byteOffset + wasmBinary.byteLength

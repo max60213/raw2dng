@@ -43,21 +43,17 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         message: "Extracting sensor payload"
       });
 
-      const extraction = await adapter.extractLinear(message.bytes);
-      const whiteLevel = findWhiteLevel(extraction.imageData);
+      const extraction = await adapter.extract(message.bytes);
       const metadata = normalizeRawMetadata({
         width: extraction.width,
         height: extraction.height,
         bitDepth: extraction.bitDepth,
-        cfaPattern: [0, 1, 1, 2],
-        blackLevel: 0,
-        whiteLevel,
-        activeArea: [0, 0, extraction.height, extraction.width],
+        cfaPattern: extraction.cfaPattern,
+        blackLevel: extraction.blackLevel,
+        whiteLevel: extraction.whiteLevel,
+        activeArea: extraction.activeArea,
         imageData: extraction.imageData,
-        metadata: {
-          ...extraction.metadata,
-          orientation: 1
-        }
+        metadata: extraction.metadata
       });
 
       postMessageFn({
@@ -71,11 +67,9 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       const blob = buildDng({
         width: extraction.width,
         height: extraction.height,
-        bitDepth: 16,
+        bitDepth: extraction.bitDepth,
         imageData: extraction.imageData,
-        metadata,
-        kind: "linear",
-        channels: 3
+        metadata
       });
 
       postMessageFn({
@@ -95,14 +89,4 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       });
     }
   };
-}
-
-function findWhiteLevel(imageData: Uint16Array): number {
-  let maxValue = 0;
-  for (let index = 0; index < imageData.length; index += 1) {
-    if (imageData[index] > maxValue) {
-      maxValue = imageData[index];
-    }
-  }
-  return Math.max(maxValue, 1);
 }

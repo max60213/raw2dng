@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 LIBRAW_DIR="$ROOT_DIR/packages/libraw-wasm/cpp/libraw"
 OUTPUT_DIR="$ROOT_DIR/packages/libraw-wasm/src/generated"
 BRIDGE="$ROOT_DIR/packages/libraw-wasm/cpp/bridge.cpp"
+POST_JS="$ROOT_DIR/packages/libraw-wasm/cpp/post.js"
 
 COMMON_FLAGS=(
   -O3
@@ -21,6 +22,7 @@ COMMON_FLAGS=(
   -I"$LIBRAW_DIR/libraw"
   -DNO_JASPER
   -DLIBRAW_NODLL
+  --post-js "$POST_JS"
 )
 
 if ! command -v emcc >/dev/null 2>&1; then

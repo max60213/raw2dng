@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "types": ["node", "vite/client", "vitest/globals"],
+    "baseUrl": ".",
+    "paths": {
+      "@web/*": ["apps/web/src/*"],
+      "@raw-core": ["packages/raw-core/src/index.ts"],
+      "@raw-core/*": ["packages/raw-core/src/*"],
+      "@dng-writer": ["packages/dng-writer/src/index.ts"],
+      "@dng-writer/*": ["packages/dng-writer/src/*"],
+      "@libraw-wasm": ["packages/libraw-wasm/src/index.ts"],
+      "@libraw-wasm/*": ["packages/libraw-wasm/src/*"],
+      "@worker-runtime": ["packages/worker-runtime/src/index.ts"],
+      "@worker-runtime/*": ["packages/worker-runtime/src/*"]
+    }
+  },
+  "include": [
+    "apps/web/src",
+    "apps/web/vite.config.ts",
+    "packages/**/*.ts",
+    "tests/**/*.ts"
+  ]
+}

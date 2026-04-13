@@ -24,9 +24,9 @@ export function detectCapabilityProfile(): CapabilityProfile {
   const maxConcurrentJobs = 1;
   const maxFileBytes = isMobile
     ? lowMemory
-      ? 20 * 1024 * 1024
-      : 32 * 1024 * 1024
-    : 80 * 1024 * 1024;
+      ? 32 * 1024 * 1024
+      : 128 * 1024 * 1024
+    : 256 * 1024 * 1024;
   const maxBatchItems = isMobile ? 3 : 8;
   const recommendedMaxPixels = isMobile ? 20_000_000 : 48_000_000;
 

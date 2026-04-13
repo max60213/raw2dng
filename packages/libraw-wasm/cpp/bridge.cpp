@@ -70,7 +70,7 @@ void configure_linear_output(LibRaw *processor) {
   processor->imgdata.params.use_camera_wb = 1;
   processor->imgdata.params.use_auto_wb = 0;
   processor->imgdata.params.no_auto_bright = 1;
-  processor->imgdata.params.no_auto_scale = 1;
+  processor->imgdata.params.no_auto_scale = 0;
   processor->imgdata.params.use_camera_matrix = 1;
   processor->imgdata.params.gamm[0] = 1.0;
   processor->imgdata.params.gamm[1] = 1.0;

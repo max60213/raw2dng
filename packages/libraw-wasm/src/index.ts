@@ -1,6 +1,7 @@
 import type { LibRawAdapter } from "./api/types";
 import { GeneratedLibRawAdapter } from "./bindings/generatedAdapter";
 import { UnavailableLibRawAdapter } from "./bindings/unavailableAdapter";
+import { createGeneratedRuntime } from "./loader/createGeneratedRuntime";
 import { loadGeneratedModule } from "./loader/loadGeneratedModule";
 
 export type { LibRawAdapter } from "./api/types";
@@ -11,6 +12,6 @@ export async function createLibRawAdapter(): Promise<LibRawAdapter> {
     return new UnavailableLibRawAdapter();
   }
 
-  const runtime = await factory({});
+  const runtime = await createGeneratedRuntime(factory);
   return new GeneratedLibRawAdapter(runtime as unknown as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]);
 }

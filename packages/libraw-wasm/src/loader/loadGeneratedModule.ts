@@ -8,3 +8,5 @@ export async function loadGeneratedModule(): Promise<GeneratedFactory | null> {
     return null;
   }
 }
+
+export type { GeneratedFactory };

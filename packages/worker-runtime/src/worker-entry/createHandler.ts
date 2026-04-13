@@ -44,16 +44,20 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       });
 
       const extraction = await adapter.extractLinear(message.bytes);
+      const whiteLevel = findWhiteLevel(extraction.imageData);
       const metadata = normalizeRawMetadata({
         width: extraction.width,
         height: extraction.height,
         bitDepth: extraction.bitDepth,
         cfaPattern: [0, 1, 1, 2],
         blackLevel: 0,
-        whiteLevel: 0xffff,
+        whiteLevel,
         activeArea: [0, 0, extraction.height, extraction.width],
         imageData: extraction.imageData,
-        metadata: extraction.metadata
+        metadata: {
+          ...extraction.metadata,
+          orientation: 1
+        }
       });
 
       postMessageFn({
@@ -91,4 +95,14 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       });
     }
   };
+}
+
+function findWhiteLevel(imageData: Uint16Array): number {
+  let maxValue = 0;
+  for (let index = 0; index < imageData.length; index += 1) {
+    if (imageData[index] > maxValue) {
+      maxValue = imageData[index];
+    }
+  }
+  return Math.max(maxValue, 1);
 }

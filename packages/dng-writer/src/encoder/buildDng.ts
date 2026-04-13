@@ -146,7 +146,7 @@ function buildLinearEntries(input: DngBuildInput, imageByteLength: number): TagE
     byteArrayTag(DNG_TAGS.dngBackwardVersion, [1, 1, 0, 0]),
     asciiTag(DNG_TAGS.uniqueCameraModel, `${input.metadata.make} ${input.metadata.model}`.trim()),
     shortArrayTag(DNG_TAGS.blackLevel, [input.metadata.blackLevel, input.metadata.blackLevel, input.metadata.blackLevel]),
-    shortArrayTag(DNG_TAGS.whiteLevel, [0xffff, 0xffff, 0xffff]),
+    shortArrayTag(DNG_TAGS.whiteLevel, [input.metadata.whiteLevel, input.metadata.whiteLevel, input.metadata.whiteLevel]),
     rationalArrayTag(DNG_TAGS.defaultScale, [1, 1]),
     shortArrayTag(DNG_TAGS.defaultCropOrigin, [0, 0]),
     shortArrayTag(DNG_TAGS.defaultCropSize, [visibleWidth, visibleHeight]),

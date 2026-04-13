@@ -1,8 +1,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import createRuntime from "../packages/libraw-wasm/src/generated/libraw.js";
-import { GeneratedLibRawAdapter } from "../packages/libraw-wasm/src/bindings/generatedAdapter";
+import { createLibRawAdapter } from "../packages/libraw-wasm/src";
 import { normalizeRawMetadata } from "../packages/raw-core/src";
 import { buildDng } from "../packages/dng-writer/src";
 
@@ -14,18 +13,14 @@ async function main() {
   const sourceName = process.argv[2] ?? "canon-eos5d-sample.cr2";
   const outputName = process.argv[3] ?? `${sourceName.replace(/\.[^.]+$/, "")}-roundtrip.dng`;
 
-  const [wasmBinary, fixture] = await Promise.all([
-    readFile(path.resolve(repoRoot, "packages/libraw-wasm/src/generated/libraw.wasm")),
+  const [adapter, fixture] = await Promise.all([
+    createLibRawAdapter(),
     readFile(path.resolve(repoRoot, "tests/fixtures/raw", sourceName))
   ]);
-
-  const runtime = await createRuntime({ wasmBinary });
-  const adapter = new GeneratedLibRawAdapter(
-    runtime as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]
-  );
   const extraction = await adapter.extractLinear(
     fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
   );
+  const whiteLevel = findWhiteLevel(extraction.imageData);
 
   const blob = buildDng({
     width: extraction.width,
@@ -38,10 +33,13 @@ async function main() {
       bitDepth: 16,
       cfaPattern: [0, 1, 1, 2],
       blackLevel: 0,
-      whiteLevel: 0xffff,
+      whiteLevel,
       activeArea: [0, 0, extraction.height, extraction.width],
       imageData: extraction.imageData,
-      metadata: extraction.metadata
+      metadata: {
+        ...extraction.metadata,
+        orientation: 1
+      }
     }),
     kind: "linear",
     channels: 3
@@ -73,3 +71,13 @@ void main().catch((error) => {
   console.error(error);
   process.exit(1);
 });
+
+function findWhiteLevel(imageData: Uint16Array): number {
+  let maxValue = 0;
+  for (let index = 0; index < imageData.length; index += 1) {
+    if (imageData[index] > maxValue) {
+      maxValue = imageData[index];
+    }
+  }
+  return Math.max(maxValue, 1);
+}

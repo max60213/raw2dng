@@ -190,6 +190,15 @@ int raw2dng_get_black_level(int handle) {
   return processor ? static_cast<int>(processor->imgdata.color.black) : 0;
 }
 
+
+int raw2dng_get_linear_max(int handle, int index) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || index < 0 || index > 3) {
+    return 0;
+  }
+  return static_cast<int>(processor->imgdata.color.linear_max[index]);
+}
+
 int raw2dng_get_white_level(int handle) {
   LibRaw *processor = lookupProcessor(handle);
   return processor ? static_cast<int>(processor->imgdata.color.maximum) : 0;
@@ -265,6 +274,23 @@ float raw2dng_get_cam_mul(int handle, int index) {
     return 0.0f;
   }
   return processor->imgdata.color.cam_mul[index];
+}
+
+
+float raw2dng_get_cmatrix(int handle, int row, int column) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || row < 0 || row > 2 || column < 0 || column > 3) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.cmatrix[row][column];
+}
+
+float raw2dng_get_cam_xyz(int handle, int row, int column) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || row < 0 || row > 3 || column < 0 || column > 2) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.cam_xyz[row][column];
 }
 
 float raw2dng_get_rgb_cam(int handle, int row, int column) {

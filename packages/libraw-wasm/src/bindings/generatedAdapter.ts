@@ -1,6 +1,7 @@
 import { RuntimeUnavailableError } from "../../../raw-core/src/errors";
 import type { LinearExtractionResult, RawExtractionResult, RawProbeResult } from "../../../raw-core/src/types";
 import type { LibRawAdapter } from "../api/types";
+import { selectWhiteLevel } from "../runtime/selectWhiteLevel";
 
 type GeneratedRuntime = {
   HEAPU8: Uint8Array;
@@ -74,7 +75,7 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
           this.callNumber("raw2dng_get_cfa", [handle, 1, 1])
         ],
         blackLevel: this.callNumber("raw2dng_get_black_level", [handle]),
-        whiteLevel: this.callNumber("raw2dng_get_white_level", [handle]),
+        whiteLevel: this.readWhiteLevel(handle, this.callNumber("raw2dng_get_white_level", [handle])),
         activeArea: [
           this.callNumber("raw2dng_get_top_margin", [handle]),
           this.callNumber("raw2dng_get_left_margin", [handle]),
@@ -204,6 +205,11 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
       this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 1]),
       this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 2])
     ];
+  }
+
+
+  private readWhiteLevel(handle: number, fallback: number): number {
+    return selectWhiteLevel(fallback, [0, 1, 2, 3].map((index) => this.callNumber("raw2dng_get_linear_max", [handle, index])));
   }
 
   private readAnalogBalance(handle: number): [number, number, number] | undefined {

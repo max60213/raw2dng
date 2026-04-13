@@ -13,6 +13,8 @@ P.S. This tool is specifically motivated by Google Snapseed. Snapseed is genuine
 - Mobile-safe queue, capability gating, worker protocol, and DNG writer are implemented.
 - `LibRaw` is compiled to WebAssembly and committed under `packages/libraw-wasm/src/generated`.
 - The browser bundle can load the real `LibRaw` runtime instead of the placeholder unavailable adapter.
+- The default export path currently favors a smaller DNG output that is more broadly openable in mobile workflows.
+- The repository still contains an experimental `Linear Raw / Linear DNG` processing path for future quality work, but it is not the default export mode right now.
 
 ## Commands
 

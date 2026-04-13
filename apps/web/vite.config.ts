@@ -13,10 +13,12 @@ export default defineConfig({
       { find: "@web", replacement: path.resolve(rootDir, "./src") },
       { find: /^@raw-core$/, replacement: path.resolve(rootDir, "../../packages/raw-core/src/index.ts") },
       { find: /^@dng-writer$/, replacement: path.resolve(rootDir, "../../packages/dng-writer/src/index.ts") },
+      { find: /^@adobe-dng-wasm$/, replacement: path.resolve(rootDir, "../../packages/adobe-dng-wasm/src/index.ts") },
       { find: /^@libraw-wasm$/, replacement: path.resolve(rootDir, "../../packages/libraw-wasm/src/index.ts") },
       { find: /^@worker-runtime$/, replacement: path.resolve(rootDir, "../../packages/worker-runtime/src/index.ts") },
       { find: /^@raw-core\/(.*)$/, replacement: `${path.resolve(rootDir, "../../packages/raw-core/src")}/$1` },
       { find: /^@dng-writer\/(.*)$/, replacement: `${path.resolve(rootDir, "../../packages/dng-writer/src")}/$1` },
+      { find: /^@adobe-dng-wasm\/(.*)$/, replacement: `${path.resolve(rootDir, "../../packages/adobe-dng-wasm/src")}/$1` },
       { find: /^@libraw-wasm\/(.*)$/, replacement: `${path.resolve(rootDir, "../../packages/libraw-wasm/src")}/$1` },
       { find: /^@worker-runtime\/(.*)$/, replacement: `${path.resolve(rootDir, "../../packages/worker-runtime/src")}/$1` }
     ]

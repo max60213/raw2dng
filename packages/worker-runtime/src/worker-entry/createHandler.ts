@@ -1,7 +1,17 @@
+import { createAdobeDngAdapter } from "../../../adobe-dng-wasm/src";
 import { buildDng } from "../../../dng-writer/src";
 import { createLibRawAdapter } from "../../../libraw-wasm/src";
 import { normalizeRawMetadata } from "../../../raw-core/src";
 import type { WorkerRequest, WorkerResponse } from "../protocol/messages";
+
+let adobeAdapterPromise: ReturnType<typeof createAdobeDngAdapter> | null = null;
+
+function getAdobeAdapter() {
+  if (!adobeAdapterPromise) {
+    adobeAdapterPromise = createAdobeDngAdapter();
+  }
+  return adobeAdapterPromise;
+}
 
 export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => void) {
   return async function handleMessage(message: WorkerRequest): Promise<void> {
@@ -56,29 +66,55 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         metadata: extraction.metadata
       });
 
+      const adobeAdapter = await getAdobeAdapter();
+      let backend: "adobe" | "legacy" = adobeAdapter.isAvailable() ? "adobe" : "legacy";
+
       postMessageFn({
         type: "progress",
         jobId: message.jobId,
         progress: 85,
         phase: "writing",
-        message: "Building DNG"
+        message: backend === "adobe" ? "Building DNG with Adobe prototype" : "Building DNG"
       });
 
-      const blob = buildDng({
-        width: extraction.width,
-        height: extraction.height,
-        bitDepth: extraction.bitDepth,
-        imageData: extraction.imageData,
-        metadata
-      });
+      let blob: Blob;
+      if (backend === "adobe") {
+        try {
+          blob = await adobeAdapter.encode({
+            width: extraction.width,
+            height: extraction.height,
+            bitDepth: extraction.bitDepth,
+            imageData: extraction.imageData,
+            metadata
+          });
+        } catch {
+          backend = "legacy";
+          blob = buildDng({
+            width: extraction.width,
+            height: extraction.height,
+            bitDepth: extraction.bitDepth,
+            imageData: extraction.imageData,
+            metadata
+          });
+        }
+      } else {
+        blob = buildDng({
+          width: extraction.width,
+          height: extraction.height,
+          bitDepth: extraction.bitDepth,
+          imageData: extraction.imageData,
+          metadata
+        });
+      }
 
       postMessageFn({
         type: "success",
         jobId: message.jobId,
         fileName: message.fileName,
-        outputName: message.fileName.replace(/\.[^.]+$/, ".dng"),
+        outputName: message.fileName.replace(/\.[^.]+$/, backend === "adobe" ? "-adobe-prototype.dng" : ".dng"),
         probe,
-        blob
+        blob,
+        backend
       });
     } catch (error) {
       postMessageFn({

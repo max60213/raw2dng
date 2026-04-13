@@ -26,6 +26,7 @@ export interface ConvertJobSuccess {
   outputName: string;
   probe: RawProbeResult;
   blob: Blob;
+  backend?: "legacy" | "adobe";
 }
 
 export interface ConvertJobFailure {

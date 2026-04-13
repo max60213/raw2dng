@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { GeneratedLibRawAdapter } from "../packages/libraw-wasm/src/bindings/generatedAdapter";
 import { createGeneratedRuntimeNode } from "../packages/libraw-wasm/src/loader/createGeneratedRuntimeNode";
 import { loadGeneratedModule } from "../packages/libraw-wasm/src/loader/loadGeneratedModule";
+import { createAdobeDngAdapterNode } from "../packages/adobe-dng-wasm/src/node";
 import { normalizeRawMetadata } from "../packages/raw-core/src";
 import { buildDng } from "../packages/dng-writer/src";
 
@@ -13,7 +14,7 @@ const repoRoot = path.resolve(__dirname, "..");
 
 async function main() {
   const sourceName = process.argv[2] ?? "canon-eos5d-sample.cr2";
-  const outputName = process.argv[3] ?? `${sourceName.replace(/\.[^.]+$/, "")}-roundtrip.dng`;
+  const outputName = process.argv[3] ?? `${sourceName.replace(/\.[^.]+$/, "")}-adobe-prototype.dng`;
 
   const [factory, fixture] = await Promise.all([
     loadGeneratedModule(),
@@ -30,23 +31,34 @@ async function main() {
     fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
   );
 
-  const blob = buildDng({
+  const metadata = normalizeRawMetadata({
     width: extraction.width,
     height: extraction.height,
     bitDepth: extraction.bitDepth,
+    cfaPattern: extraction.cfaPattern,
+    blackLevel: extraction.blackLevel,
+    whiteLevel: extraction.whiteLevel,
+    activeArea: extraction.activeArea,
     imageData: extraction.imageData,
-    metadata: normalizeRawMetadata({
-      width: extraction.width,
-      height: extraction.height,
-      bitDepth: extraction.bitDepth,
-      cfaPattern: extraction.cfaPattern,
-      blackLevel: extraction.blackLevel,
-      whiteLevel: extraction.whiteLevel,
-      activeArea: extraction.activeArea,
-      imageData: extraction.imageData,
-      metadata: extraction.metadata
-    })
+    metadata: extraction.metadata
   });
+
+  const adobeAdapter = await createAdobeDngAdapterNode();
+  const blob = adobeAdapter.isAvailable()
+    ? await adobeAdapter.encode({
+        width: extraction.width,
+        height: extraction.height,
+        bitDepth: extraction.bitDepth,
+        imageData: extraction.imageData,
+        metadata
+      })
+    : buildDng({
+        width: extraction.width,
+        height: extraction.height,
+        bitDepth: extraction.bitDepth,
+        imageData: extraction.imageData,
+        metadata
+      });
 
   const outputBuffer = Buffer.from(await blob.arrayBuffer());
   const outputPath = path.resolve(repoRoot, "tests/expected", outputName);
@@ -62,7 +74,8 @@ async function main() {
         bitDepth: extraction.bitDepth,
         make: extraction.metadata.make,
         model: extraction.metadata.model,
-        outputBytes: outputBuffer.length
+        outputBytes: outputBuffer.length,
+        backend: adobeAdapter.isAvailable() ? "adobe" : "legacy"
       },
       null,
       2

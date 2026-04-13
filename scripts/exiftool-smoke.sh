@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE_NAME="${1:-canon-eos5d-sample.cr2}"
-OUTPUT_NAME="${2:-${SOURCE_NAME%.*}-roundtrip.dng}"
+OUTPUT_NAME="${2:-${SOURCE_NAME%.*}-adobe-prototype.dng}"
 OUTPUT_PATH="$ROOT_DIR/tests/expected/$OUTPUT_NAME"
 
 if ! command -v exiftool >/dev/null 2>&1; then

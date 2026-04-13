@@ -16,6 +16,16 @@ npm run dev
 npm run check
 ```
 
+## Browser smoke
+
+Run a real browser smoke check with the committed Canon fixture:
+
+```bash
+bash scripts/browser-smoke.sh
+```
+
+Playwright session artifacts are written under `.playwright-cli/` and ignored by git.
+
 ## Project layout
 
 - `apps/web`: mobile-first React app

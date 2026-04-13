@@ -1,4 +1,5 @@
 .omx/
+.playwright-cli/
 node_modules/
 dist/
 .tools/

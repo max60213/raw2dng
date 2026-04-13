@@ -64,6 +64,38 @@ describe("LibRaw WASM real fixtures", () => {
     expect(extraction.metadata.make.toLowerCase()).toContain("canon");
     expect(extraction.imageData.length).toBe(extraction.width * extraction.height);
   }, 60_000);
+
+  it("can build a linear DNG from a Canon CR2 sample", async () => {
+    const adapter = await createAdapter();
+    const fixture = await readFixture("canon-eos5d-sample.cr2");
+    const linear = await adapter.extractLinear(fixture);
+    expect(linear.channels).toBe(3);
+    expect(linear.bitDepth).toBe(16);
+    expect(linear.imageData.length).toBe(linear.width * linear.height * 3);
+
+    const output = buildDng({
+      width: linear.width,
+      height: linear.height,
+      bitDepth: 16,
+      imageData: linear.imageData,
+      metadata: normalizeRawMetadata({
+        width: linear.width,
+        height: linear.height,
+        bitDepth: 16,
+        cfaPattern: [0, 1, 1, 2],
+        blackLevel: 0,
+        whiteLevel: 0xffff,
+        activeArea: [0, 0, linear.height, linear.width],
+        imageData: linear.imageData,
+        metadata: linear.metadata
+      }),
+      kind: "linear",
+      channels: 3
+    });
+
+    const roundTripProbe = await adapter.probe(await output.arrayBuffer());
+    expect(roundTripProbe.supported).toBe(true);
+  }, 60_000);
 });
 
 async function createAdapter() {

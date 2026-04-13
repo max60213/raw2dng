@@ -73,6 +73,10 @@ export function buildDng(input: DngBuildInput): Blob {
 }
 
 function buildEntries(input: DngBuildInput, imageByteLength: number): TagEntry[] {
+  if (input.kind === "linear") {
+    return buildLinearEntries(input, imageByteLength);
+  }
+
   const visibleWidth = input.metadata.activeArea[3] - input.metadata.activeArea[1];
   const visibleHeight = input.metadata.activeArea[2] - input.metadata.activeArea[0];
 
@@ -116,6 +120,48 @@ function buildEntries(input: DngBuildInput, imageByteLength: number): TagEntry[]
     ...(input.metadata.opcodeList3 ? [undefinedTag(DNG_TAGS.opcodeList3, input.metadata.opcodeList3)] : []),
     byteArrayTag(DNG_TAGS.cfaPlaneColor, [0, 1, 2]),
     shortTag(DNG_TAGS.cfaLayout, 1)
+  ].sort((left, right) => left.id - right.id);
+}
+
+function buildLinearEntries(input: DngBuildInput, imageByteLength: number): TagEntry[] {
+  const visibleWidth = input.metadata.activeArea[3] - input.metadata.activeArea[1];
+  const visibleHeight = input.metadata.activeArea[2] - input.metadata.activeArea[0];
+
+  return [
+    longTag(DNG_TAGS.newSubfileType, 0),
+    longTag(DNG_TAGS.imageWidth, input.width),
+    longTag(DNG_TAGS.imageLength, input.height),
+    shortArrayTag(DNG_TAGS.bitsPerSample, [16, 16, 16]),
+    shortTag(DNG_TAGS.compression, 1),
+    shortTag(DNG_TAGS.photometricInterpretation, 34892),
+    asciiTag(DNG_TAGS.make, input.metadata.make),
+    asciiTag(DNG_TAGS.model, input.metadata.model),
+    longTag(DNG_TAGS.stripOffsets, 0),
+    shortTag(DNG_TAGS.orientation, input.metadata.orientation),
+    shortTag(DNG_TAGS.samplesPerPixel, 3),
+    longTag(DNG_TAGS.rowsPerStrip, input.height),
+    longTag(DNG_TAGS.stripByteCounts, imageByteLength),
+    shortTag(DNG_TAGS.planarConfiguration, 1),
+    byteArrayTag(DNG_TAGS.dngVersion, [1, 4, 0, 0]),
+    byteArrayTag(DNG_TAGS.dngBackwardVersion, [1, 1, 0, 0]),
+    asciiTag(DNG_TAGS.uniqueCameraModel, `${input.metadata.make} ${input.metadata.model}`.trim()),
+    shortArrayTag(DNG_TAGS.blackLevel, [input.metadata.blackLevel, input.metadata.blackLevel, input.metadata.blackLevel]),
+    shortArrayTag(DNG_TAGS.whiteLevel, [0xffff, 0xffff, 0xffff]),
+    rationalArrayTag(DNG_TAGS.defaultScale, [1, 1]),
+    shortArrayTag(DNG_TAGS.defaultCropOrigin, [0, 0]),
+    shortArrayTag(DNG_TAGS.defaultCropSize, [visibleWidth, visibleHeight]),
+    srationalArrayTag(DNG_TAGS.colorMatrix1, input.metadata.colorMatrix1),
+    ...(input.metadata.colorMatrix2 ? [srationalArrayTag(DNG_TAGS.colorMatrix2, input.metadata.colorMatrix2)] : []),
+    ...(input.metadata.cameraCalibration1 ? [srationalArrayTag(DNG_TAGS.cameraCalibration1, input.metadata.cameraCalibration1)] : []),
+    ...(input.metadata.cameraCalibration2 ? [srationalArrayTag(DNG_TAGS.cameraCalibration2, input.metadata.cameraCalibration2)] : []),
+    ...(input.metadata.analogBalance ? [rationalArrayTag(DNG_TAGS.analogBalance, input.metadata.analogBalance)] : []),
+    rationalArrayTag(DNG_TAGS.asShotNeutral, input.metadata.asShotNeutral),
+    ...(input.metadata.baselineExposure !== undefined ? [srationalArrayTag(DNG_TAGS.baselineExposure, [input.metadata.baselineExposure])] : []),
+    ...(input.metadata.forwardMatrix1 ? [srationalArrayTag(DNG_TAGS.forwardMatrix1, input.metadata.forwardMatrix1)] : []),
+    ...(input.metadata.forwardMatrix2 ? [srationalArrayTag(DNG_TAGS.forwardMatrix2, input.metadata.forwardMatrix2)] : []),
+    shortTag(DNG_TAGS.calibrationIlluminant1, input.metadata.calibrationIlluminant1),
+    ...(input.metadata.calibrationIlluminant2 ? [shortTag(DNG_TAGS.calibrationIlluminant2, input.metadata.calibrationIlluminant2)] : []),
+    longArrayTag(DNG_TAGS.activeArea, input.metadata.activeArea)
   ].sort((left, right) => left.id - right.id);
 }
 

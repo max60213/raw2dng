@@ -1,5 +1,5 @@
 import { RuntimeUnavailableError } from "../../../raw-core/src/errors";
-import type { RawExtractionResult, RawProbeResult } from "../../../raw-core/src/types";
+import type { LinearExtractionResult, RawExtractionResult, RawProbeResult } from "../../../raw-core/src/types";
 import type { LibRawAdapter } from "../api/types";
 
 type GeneratedRuntime = {
@@ -82,28 +82,50 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
           this.callNumber("raw2dng_get_left_margin", [handle]) + this.callNumber("raw2dng_get_visible_width", [handle])
         ],
         imageData,
-        metadata: {
-          make: this.readString("raw2dng_get_make", [handle]),
-          model: this.readString("raw2dng_get_model", [handle]),
-          orientation: mapOrientation(this.callNumber("raw2dng_get_flip", [handle])),
-          colorMatrix1: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 0) ??
-            this.readRgbCamFallback(handle),
-          colorMatrix2: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 1) ?? undefined,
-          forwardMatrix1: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 0) ?? undefined,
-          forwardMatrix2: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 1) ?? undefined,
-          cameraCalibration1: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 0) ?? undefined,
-          cameraCalibration2: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 1) ?? undefined,
-          asShotNeutral: deriveAsShotNeutral([
-            this.callFloat("raw2dng_get_cam_mul", [handle, 0]),
-            this.callFloat("raw2dng_get_cam_mul", [handle, 1]),
-            this.callFloat("raw2dng_get_cam_mul", [handle, 2])
-          ]),
-          analogBalance: this.readAnalogBalance(handle),
-          calibrationIlluminant1: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 0])) ?? 21,
-          calibrationIlluminant2: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 1])) ?? undefined,
-          baselineExposure: this.readBaselineExposure(handle),
-          opcodeList3: this.readOpcodeList3(handle)
-        }
+        metadata: this.readMetadata(handle)
+      };
+    } finally {
+      this.close(handle, inputPointer);
+    }
+  }
+
+  async extractLinear(input: ArrayBuffer): Promise<LinearExtractionResult> {
+    assertRuntime(this.runtime);
+    const { handle, inputPointer } = this.open(input);
+    try {
+      const unpackStatus = this.callNumber("raw2dng_unpack", [handle]);
+      if (unpackStatus !== 0) {
+        throw new RuntimeUnavailableError(this.describeError(unpackStatus));
+      }
+
+      const metadata = this.readMetadata(handle);
+      const processStatus = this.callNumber("raw2dng_process_linear", [handle]);
+      if (processStatus !== 0) {
+        throw new RuntimeUnavailableError(this.describeError(processStatus));
+      }
+
+      const width = this.callNumber("raw2dng_get_processed_width", [handle]);
+      const height = this.callNumber("raw2dng_get_processed_height", [handle]);
+      const channels = this.callNumber("raw2dng_get_processed_colors", [handle]);
+      const bitDepth = this.callNumber("raw2dng_get_processed_bits", [handle]);
+      const dataPointer = this.callNumber("raw2dng_get_processed_data_ptr", [handle]);
+      const dataSize = this.callNumber("raw2dng_get_processed_data_size", [handle]);
+      if (channels !== 3 || dataPointer === 0 || dataSize === 0) {
+        throw new RuntimeUnavailableError("LibRaw linear processing did not expose a 3-channel bitmap.");
+      }
+
+      const heapOffset = dataPointer / Uint16Array.BYTES_PER_ELEMENT;
+      const valueCount = dataSize / Uint16Array.BYTES_PER_ELEMENT;
+      const imageData = new Uint16Array(valueCount);
+      imageData.set(this.runtime.HEAPU16.subarray(heapOffset, heapOffset + valueCount));
+
+      return {
+        width,
+        height,
+        bitDepth,
+        channels: 3,
+        imageData,
+        metadata
       };
     } finally {
       this.close(handle, inputPointer);
@@ -205,6 +227,31 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
       return undefined;
     }
     return new Uint8Array(this.runtime.HEAPU8.slice(pointer, pointer + length));
+  }
+
+  private readMetadata(handle: number) {
+    return {
+      make: this.readString("raw2dng_get_make", [handle]),
+      model: this.readString("raw2dng_get_model", [handle]),
+      orientation: mapOrientation(this.callNumber("raw2dng_get_flip", [handle])),
+      colorMatrix1: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 0) ??
+        this.readRgbCamFallback(handle),
+      colorMatrix2: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 1) ?? undefined,
+      forwardMatrix1: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 0) ?? undefined,
+      forwardMatrix2: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 1) ?? undefined,
+      cameraCalibration1: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 0) ?? undefined,
+      cameraCalibration2: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 1) ?? undefined,
+      asShotNeutral: deriveAsShotNeutral([
+        this.callFloat("raw2dng_get_cam_mul", [handle, 0]),
+        this.callFloat("raw2dng_get_cam_mul", [handle, 1]),
+        this.callFloat("raw2dng_get_cam_mul", [handle, 2])
+      ]),
+      analogBalance: this.readAnalogBalance(handle),
+      calibrationIlluminant1: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 0])) ?? 21,
+      calibrationIlluminant2: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 1])) ?? undefined,
+      baselineExposure: this.readBaselineExposure(handle),
+      opcodeList3: this.readOpcodeList3(handle)
+    };
   }
 }
 

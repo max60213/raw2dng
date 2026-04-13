@@ -23,16 +23,28 @@ async function main() {
   const adapter = new GeneratedLibRawAdapter(
     runtime as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]
   );
-  const extraction = await adapter.extract(
+  const extraction = await adapter.extractLinear(
     fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
   );
 
   const blob = buildDng({
     width: extraction.width,
     height: extraction.height,
-    bitDepth: extraction.bitDepth,
+    bitDepth: 16,
     imageData: extraction.imageData,
-    metadata: normalizeRawMetadata(extraction)
+    metadata: normalizeRawMetadata({
+      width: extraction.width,
+      height: extraction.height,
+      bitDepth: 16,
+      cfaPattern: [0, 1, 1, 2],
+      blackLevel: 0,
+      whiteLevel: 0xffff,
+      activeArea: [0, 0, extraction.height, extraction.width],
+      imageData: extraction.imageData,
+      metadata: extraction.metadata
+    }),
+    kind: "linear",
+    channels: 3
   });
 
   const outputBuffer = Buffer.from(await blob.arrayBuffer());
@@ -46,7 +58,7 @@ async function main() {
         outputName,
         width: extraction.width,
         height: extraction.height,
-        bitDepth: extraction.bitDepth,
+        bitDepth: 16,
         make: extraction.metadata.make,
         model: extraction.metadata.model,
         outputBytes: outputBuffer.length

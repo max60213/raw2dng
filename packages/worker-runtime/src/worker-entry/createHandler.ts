@@ -43,8 +43,18 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         message: "Extracting sensor payload"
       });
 
-      const extraction = await adapter.extract(message.bytes);
-      const metadata = normalizeRawMetadata(extraction);
+      const extraction = await adapter.extractLinear(message.bytes);
+      const metadata = normalizeRawMetadata({
+        width: extraction.width,
+        height: extraction.height,
+        bitDepth: extraction.bitDepth,
+        cfaPattern: [0, 1, 1, 2],
+        blackLevel: 0,
+        whiteLevel: 0xffff,
+        activeArea: [0, 0, extraction.height, extraction.width],
+        imageData: extraction.imageData,
+        metadata: extraction.metadata
+      });
 
       postMessageFn({
         type: "progress",
@@ -57,9 +67,11 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       const blob = buildDng({
         width: extraction.width,
         height: extraction.height,
-        bitDepth: extraction.bitDepth,
+        bitDepth: 16,
         imageData: extraction.imageData,
-        metadata
+        metadata,
+        kind: "linear",
+        channels: 3
       });
 
       postMessageFn({

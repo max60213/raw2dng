@@ -9,4 +9,8 @@ export class UnavailableLibRawAdapter implements LibRawAdapter {
   async extract(): Promise<never> {
     throw new RuntimeUnavailableError();
   }
+
+  async extractLinear(): Promise<never> {
+    throw new RuntimeUnavailableError();
+  }
 }

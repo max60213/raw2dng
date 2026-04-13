@@ -78,6 +78,15 @@ export interface RawExtractionResult {
   metadata: RawCameraMetadata;
 }
 
+export interface LinearExtractionResult {
+  width: number;
+  height: number;
+  bitDepth: number;
+  channels: 3;
+  imageData: Uint16Array;
+  metadata: RawCameraMetadata;
+}
+
 export interface NormalizedRawMetadata {
   make: string;
   model: string;
@@ -106,4 +115,6 @@ export interface DngBuildInput {
   bitDepth: number;
   imageData: Uint16Array;
   metadata: NormalizedRawMetadata;
+  kind?: "raw" | "linear";
+  channels?: 1 | 3;
 }

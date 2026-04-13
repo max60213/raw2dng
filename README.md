@@ -26,6 +26,12 @@ bash scripts/browser-smoke.sh
 
 Playwright session artifacts are written under `.playwright-cli/` and ignored by git.
 
+Inspect round-trip DNG metadata with `exiftool`:
+
+```bash
+bash scripts/exiftool-smoke.sh
+```
+
 ## Project layout
 
 - `apps/web`: mobile-first React app

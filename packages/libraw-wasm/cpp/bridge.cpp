@@ -131,6 +131,54 @@ int raw2dng_get_white_level(int handle) {
   return processor ? static_cast<int>(processor->imgdata.color.maximum) : 0;
 }
 
+int raw2dng_get_calibration_illuminant(int handle, int index) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || index < 0 || index > 1) {
+    return 0;
+  }
+  return processor->imgdata.color.dng_color[index].illuminant;
+}
+
+float raw2dng_get_dng_color_matrix(int handle, int matrixIndex, int row, int column) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || matrixIndex < 0 || matrixIndex > 1 || row < 0 || row > 2 || column < 0 || column > 2) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.dng_color[matrixIndex].colormatrix[row][column];
+}
+
+float raw2dng_get_forward_matrix(int handle, int matrixIndex, int row, int column) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || matrixIndex < 0 || matrixIndex > 1 || row < 0 || row > 2 || column < 0 || column > 2) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.dng_color[matrixIndex].forwardmatrix[row][column];
+}
+
+float raw2dng_get_camera_calibration(int handle, int matrixIndex, int row, int column) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || matrixIndex < 0 || matrixIndex > 1 || row < 0 || row > 2 || column < 0 || column > 2) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.dng_color[matrixIndex].calibration[row][column];
+}
+
+float raw2dng_get_analog_balance(int handle, int index) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || index < 0 || index > 2) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.dng_levels.analogbalance[index];
+}
+
+float raw2dng_get_baseline_exposure(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.dng_levels.baseline_exposure;
+}
+
 float raw2dng_get_cam_mul(int handle, int index) {
   LibRaw *processor = lookup(handle);
   if (!processor || index < 0 || index > 3) {

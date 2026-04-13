@@ -53,8 +53,16 @@ export interface RawCameraMetadata {
   model: string;
   orientation: number;
   colorMatrix1: [number, number, number, number, number, number, number, number, number];
+  colorMatrix2?: [number, number, number, number, number, number, number, number, number];
+  forwardMatrix1?: [number, number, number, number, number, number, number, number, number];
+  forwardMatrix2?: [number, number, number, number, number, number, number, number, number];
+  cameraCalibration1?: [number, number, number, number, number, number, number, number, number];
+  cameraCalibration2?: [number, number, number, number, number, number, number, number, number];
   asShotNeutral: [number, number, number];
+  analogBalance?: [number, number, number];
   calibrationIlluminant1: number;
+  calibrationIlluminant2?: number;
+  baselineExposure?: number;
 }
 
 export interface RawExtractionResult {
@@ -74,8 +82,16 @@ export interface NormalizedRawMetadata {
   model: string;
   orientation: number;
   colorMatrix1: [number, number, number, number, number, number, number, number, number];
+  colorMatrix2?: [number, number, number, number, number, number, number, number, number];
+  forwardMatrix1?: [number, number, number, number, number, number, number, number, number];
+  forwardMatrix2?: [number, number, number, number, number, number, number, number, number];
+  cameraCalibration1?: [number, number, number, number, number, number, number, number, number];
+  cameraCalibration2?: [number, number, number, number, number, number, number, number, number];
   asShotNeutral: [number, number, number];
+  analogBalance?: [number, number, number];
   calibrationIlluminant1: number;
+  calibrationIlluminant2?: number;
+  baselineExposure?: number;
   blackLevel: number;
   whiteLevel: number;
   activeArea: [number, number, number, number];

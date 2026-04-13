@@ -16,7 +16,7 @@ COMMON_FLAGS=(
   -sFILESYSTEM=0
   -sINITIAL_MEMORY=67108864
   "-sEXPORTED_RUNTIME_METHODS=['ccall','UTF8ToString']"
-  "-sEXPORTED_FUNCTIONS=['_malloc','_free','_raw2dng_create','_raw2dng_destroy','_raw2dng_open_buffer','_raw2dng_unpack','_raw2dng_recycle','_raw2dng_get_raw_width','_raw2dng_get_raw_height','_raw2dng_get_visible_width','_raw2dng_get_visible_height','_raw2dng_get_top_margin','_raw2dng_get_left_margin','_raw2dng_get_flip','_raw2dng_get_bit_depth','_raw2dng_get_black_level','_raw2dng_get_white_level','_raw2dng_get_cam_mul','_raw2dng_get_rgb_cam','_raw2dng_get_cfa','_raw2dng_get_raw_image_ptr','_raw2dng_get_raw_image_count','_raw2dng_get_make','_raw2dng_get_model','_raw2dng_strerror']"
+  "-sEXPORTED_FUNCTIONS=['_malloc','_free','_raw2dng_create','_raw2dng_destroy','_raw2dng_open_buffer','_raw2dng_unpack','_raw2dng_recycle','_raw2dng_get_raw_width','_raw2dng_get_raw_height','_raw2dng_get_visible_width','_raw2dng_get_visible_height','_raw2dng_get_top_margin','_raw2dng_get_left_margin','_raw2dng_get_flip','_raw2dng_get_bit_depth','_raw2dng_get_black_level','_raw2dng_get_white_level','_raw2dng_get_cam_mul','_raw2dng_get_rgb_cam','_raw2dng_get_dng_color_matrix','_raw2dng_get_forward_matrix','_raw2dng_get_camera_calibration','_raw2dng_get_calibration_illuminant','_raw2dng_get_analog_balance','_raw2dng_get_baseline_exposure','_raw2dng_get_cfa','_raw2dng_get_raw_image_ptr','_raw2dng_get_raw_image_count','_raw2dng_get_make','_raw2dng_get_model','_raw2dng_strerror']"
   -Wno-macro-redefined
   -I"$LIBRAW_DIR"
   -I"$LIBRAW_DIR/libraw"

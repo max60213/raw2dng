@@ -86,23 +86,22 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
           make: this.readString("raw2dng_get_make", [handle]),
           model: this.readString("raw2dng_get_model", [handle]),
           orientation: mapOrientation(this.callNumber("raw2dng_get_flip", [handle])),
-          colorMatrix1: [
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 0]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 1]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 2]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 0]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 1]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 2]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 0]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 1]),
-            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 2])
-          ],
+          colorMatrix1: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 0) ??
+            this.readRgbCamFallback(handle),
+          colorMatrix2: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 1) ?? undefined,
+          forwardMatrix1: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 0) ?? undefined,
+          forwardMatrix2: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 1) ?? undefined,
+          cameraCalibration1: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 0) ?? undefined,
+          cameraCalibration2: this.readDngMatrix("raw2dng_get_camera_calibration", handle, 1) ?? undefined,
           asShotNeutral: deriveAsShotNeutral([
             this.callFloat("raw2dng_get_cam_mul", [handle, 0]),
             this.callFloat("raw2dng_get_cam_mul", [handle, 1]),
             this.callFloat("raw2dng_get_cam_mul", [handle, 2])
           ]),
-          calibrationIlluminant1: 21
+          analogBalance: this.readAnalogBalance(handle),
+          calibrationIlluminant1: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 0])) ?? 21,
+          calibrationIlluminant2: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 1])) ?? undefined,
+          baselineExposure: this.readBaselineExposure(handle)
         }
       };
     } finally {
@@ -155,6 +154,48 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
   private callVoid(name: string, args: unknown[]): void {
     this.runtime.ccall!(name, null, new Array(args.length).fill("number"), args);
   }
+
+  private readDngMatrix(
+    functionName: "raw2dng_get_dng_color_matrix" | "raw2dng_get_forward_matrix" | "raw2dng_get_camera_calibration",
+    handle: number,
+    matrixIndex: number
+  ): [number, number, number, number, number, number, number, number, number] | null {
+    const values = Array.from({ length: 9 }, (_, index) => {
+      const row = Math.floor(index / 3);
+      const column = index % 3;
+      return this.callFloat(functionName, [handle, matrixIndex, row, column]);
+    }) as [number, number, number, number, number, number, number, number, number];
+
+    return hasMeaningfulValues(values) ? values : null;
+  }
+
+  private readRgbCamFallback(handle: number): [number, number, number, number, number, number, number, number, number] {
+    return [
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 0]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 1]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 2]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 0]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 1]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 2]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 0]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 1]),
+      this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 2])
+    ];
+  }
+
+  private readAnalogBalance(handle: number): [number, number, number] | undefined {
+    const values = [
+      this.callFloat("raw2dng_get_analog_balance", [handle, 0]),
+      this.callFloat("raw2dng_get_analog_balance", [handle, 1]),
+      this.callFloat("raw2dng_get_analog_balance", [handle, 2])
+    ] as [number, number, number];
+    return hasMeaningfulValues(values) ? values : undefined;
+  }
+
+  private readBaselineExposure(handle: number): number | undefined {
+    const value = this.callFloat("raw2dng_get_baseline_exposure", [handle]);
+    return Number.isFinite(value) && value > -998 ? value : undefined;
+  }
 }
 
 function assertRuntime(runtime: GeneratedRuntime): asserts runtime is GeneratedRuntime & Required<Pick<GeneratedRuntime, "ccall" | "_malloc" | "_free">> {
@@ -180,4 +221,15 @@ function mapOrientation(flip: number): number {
     default:
       return 1;
   }
+}
+
+function hasMeaningfulValues(values: number[]): boolean {
+  return values.some((value) => Number.isFinite(value) && Math.abs(value) > 0.000001);
+}
+
+function normalizeIlluminant(value: number): number | undefined {
+  if (!Number.isFinite(value) || value <= 0 || value === 65535) {
+    return undefined;
+  }
+  return value;
 }

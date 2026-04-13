@@ -6,9 +6,10 @@
   "scripts": {
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "vite build --config apps/web/vite.config.ts",
+    "build:wasm": "echo 'source .tools/emsdk/emsdk_env.sh && bash packages/libraw-wasm/scripts/build-wasm.sh'",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --config vitest.config.ts",
     "lint": "tsc --noEmit",
     "check": "npm run lint && npm run test && npm run build"
   },

@@ -5,9 +5,8 @@ Mobile-first browser tool for converting RAW files to DNG entirely on the client
 ## Current status
 
 - Mobile-safe queue, capability gating, worker protocol, and DNG writer are implemented.
-- `LibRaw` is integrated as a pluggable WASM adapter boundary.
-- Real `LibRaw -> WebAssembly` binaries are not vendored in this repository yet.
-- Without the generated WASM bundle, the UI still runs and reports that conversion runtime is unavailable instead of pretending conversion succeeded.
+- `LibRaw` is compiled to WebAssembly and committed under `packages/libraw-wasm/src/generated`.
+- The browser bundle can load the real `LibRaw` runtime instead of the placeholder unavailable adapter.
 
 ## Commands
 
@@ -27,9 +26,14 @@ npm run check
 
 ## LibRaw WASM
 
-To enable real conversion, provide a generated Emscripten build at:
+Generated artifacts are committed at:
 
 - `packages/libraw-wasm/src/generated/libraw.js`
 - `packages/libraw-wasm/src/generated/libraw.wasm`
 
-The build hook is scaffolded in `packages/libraw-wasm/scripts/build-wasm.sh`.
+To rebuild them locally, activate emsdk and run:
+
+```bash
+source .tools/emsdk/emsdk_env.sh
+bash packages/libraw-wasm/scripts/build-wasm.sh
+```

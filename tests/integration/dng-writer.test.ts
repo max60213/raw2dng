@@ -22,7 +22,7 @@ describe("buildDng", () => {
       }
     });
 
-    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const bytes = new Uint8Array(await readBlob(blob));
     expect(blob.type).toBe("image/x-adobe-dng");
     expect(bytes[0]).toBe(0x49);
     expect(bytes[1]).toBe(0x49);
@@ -30,3 +30,12 @@ describe("buildDng", () => {
     expect(bytes.length).toBeGreaterThan(128);
   });
 });
+
+function readBlob(blob: Blob): Promise<ArrayBuffer> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read blob"));
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.readAsArrayBuffer(blob);
+  });
+}

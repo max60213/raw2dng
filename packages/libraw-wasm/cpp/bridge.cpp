@@ -1,0 +1,188 @@
+#include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <memory>
+#include <unordered_map>
+
+#include "libraw/libraw.h"
+
+namespace {
+
+using Handle = int32_t;
+
+std::unordered_map<Handle, std::unique_ptr<LibRaw>> g_instances;
+Handle g_nextHandle = 1;
+
+LibRaw *lookup(Handle handle) {
+  const auto it = g_instances.find(handle);
+  if (it == g_instances.end()) {
+    return nullptr;
+  }
+  return it->second.get();
+}
+
+int derive_bit_depth(LibRaw *processor) {
+  if (!processor) {
+    return 0;
+  }
+
+  const unsigned raw_bps = processor->imgdata.color.raw_bps;
+  if (raw_bps > 0 && raw_bps <= 16) {
+    return static_cast<int>(raw_bps);
+  }
+
+  const unsigned maximum = processor->imgdata.color.maximum;
+  if (maximum > 0) {
+    return static_cast<int>(std::ceil(std::log2(static_cast<double>(maximum) + 1.0)));
+  }
+
+  return 16;
+}
+
+const char *safe_text(const char *value) {
+  return value ? value : "";
+}
+
+} // namespace
+
+extern "C" {
+
+int raw2dng_create() {
+  const Handle handle = g_nextHandle++;
+  g_instances[handle] = std::make_unique<LibRaw>(0);
+  return handle;
+}
+
+void raw2dng_destroy(int handle) {
+  g_instances.erase(handle);
+}
+
+int raw2dng_open_buffer(int handle, const uint8_t *buffer, int size) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return EINVAL;
+  }
+  return processor->open_buffer(buffer, static_cast<size_t>(size));
+}
+
+int raw2dng_unpack(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return EINVAL;
+  }
+  return processor->unpack();
+}
+
+void raw2dng_recycle(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return;
+  }
+  processor->recycle();
+}
+
+int raw2dng_get_raw_width(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.raw_width : 0;
+}
+
+int raw2dng_get_raw_height(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.raw_height : 0;
+}
+
+int raw2dng_get_visible_width(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.width : 0;
+}
+
+int raw2dng_get_visible_height(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.height : 0;
+}
+
+int raw2dng_get_top_margin(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.top_margin : 0;
+}
+
+int raw2dng_get_left_margin(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.left_margin : 0;
+}
+
+int raw2dng_get_flip(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? processor->imgdata.sizes.flip : 0;
+}
+
+int raw2dng_get_bit_depth(int handle) {
+  LibRaw *processor = lookup(handle);
+  return derive_bit_depth(processor);
+}
+
+int raw2dng_get_black_level(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? static_cast<int>(processor->imgdata.color.black) : 0;
+}
+
+int raw2dng_get_white_level(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? static_cast<int>(processor->imgdata.color.maximum) : 0;
+}
+
+float raw2dng_get_cam_mul(int handle, int index) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || index < 0 || index > 3) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.cam_mul[index];
+}
+
+float raw2dng_get_rgb_cam(int handle, int row, int column) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || row < 0 || row > 2 || column < 0 || column > 3) {
+    return 0.0f;
+  }
+  return processor->imgdata.color.rgb_cam[row][column];
+}
+
+int raw2dng_get_cfa(int handle, int row, int column) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return 0;
+  }
+  return processor->COLOR(row, column);
+}
+
+int raw2dng_get_raw_image_ptr(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || !processor->imgdata.rawdata.raw_image) {
+    return 0;
+  }
+  return static_cast<int>(reinterpret_cast<uintptr_t>(processor->imgdata.rawdata.raw_image));
+}
+
+int raw2dng_get_raw_image_count(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return 0;
+  }
+  return processor->imgdata.sizes.raw_width * processor->imgdata.sizes.raw_height;
+}
+
+const char *raw2dng_get_make(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? safe_text(processor->imgdata.idata.make) : "";
+}
+
+const char *raw2dng_get_model(int handle) {
+  LibRaw *processor = lookup(handle);
+  return processor ? safe_text(processor->imgdata.idata.model) : "";
+}
+
+const char *raw2dng_strerror(int errorCode) {
+  return libraw_strerror(errorCode);
+}
+
+}

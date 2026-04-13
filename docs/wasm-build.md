@@ -1,11 +1,11 @@
 # LibRaw WASM build notes
 
-This repository does not vendor `LibRaw` sources or an `emscripten` toolchain.
+This repository vendors `LibRaw` sources and commits generated WASM artifacts.
 
 Expected local prerequisites:
 
 - `emcc`
-- vendored `LibRaw` sources under `packages/libraw-wasm/cpp/libraw`
+- activated emsdk environment
 
 Build entrypoint:
 

@@ -12,5 +12,5 @@ export async function createLibRawAdapter(): Promise<LibRawAdapter> {
   }
 
   const runtime = await factory({});
-  return new GeneratedLibRawAdapter(runtime as object);
+  return new GeneratedLibRawAdapter(runtime as unknown as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]);
 }

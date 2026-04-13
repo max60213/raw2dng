@@ -3,6 +3,11 @@ import type { RawExtractionResult, RawProbeResult } from "../../../raw-core/src/
 import type { LibRawAdapter } from "../api/types";
 
 type GeneratedRuntime = {
+  HEAPU8: Uint8Array;
+  HEAPU16: Uint16Array;
+  UTF8ToString?: (pointer: number) => string;
+  _malloc?: (size: number) => number;
+  _free?: (pointer: number) => void;
   ccall?: (
     name: string,
     returnType: string | null,
@@ -15,21 +20,164 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
   constructor(private readonly runtime: GeneratedRuntime) {}
 
   async probe(input: ArrayBuffer): Promise<RawProbeResult> {
-    if (!this.runtime.ccall) {
-      throw new RuntimeUnavailableError();
-    }
+    assertRuntime(this.runtime);
+    const { handle, inputPointer } = this.open(input);
+    try {
+      const fileSize = input.byteLength;
+      const width = this.callNumber("raw2dng_get_raw_width", [handle]);
+      const height = this.callNumber("raw2dng_get_raw_height", [handle]);
+      const bitDepth = this.callNumber("raw2dng_get_bit_depth", [handle]);
 
-    const fileSize = input.byteLength;
-    return {
-      supported: true,
-      formatHint: "raw",
-      fileSize
-    };
+      return {
+        supported: width > 0 && height > 0,
+        formatHint: "raw",
+        width,
+        height,
+        bitDepth,
+        fileSize,
+        reason: width > 0 && height > 0 ? undefined : "LibRaw could not read RAW dimensions."
+      };
+    } finally {
+      this.close(handle, inputPointer);
+    }
   }
 
-  async extract(): Promise<RawExtractionResult> {
-    throw new RuntimeUnavailableError(
-      "Generated LibRaw WASM bindings are not wired yet. Add generated/libraw.js + generated/libraw.wasm and bridge exports."
-    );
+  async extract(input: ArrayBuffer): Promise<RawExtractionResult> {
+    assertRuntime(this.runtime);
+    const { handle, inputPointer } = this.open(input);
+    try {
+      const unpackStatus = this.callNumber("raw2dng_unpack", [handle]);
+      if (unpackStatus !== 0) {
+        throw new RuntimeUnavailableError(this.describeError(unpackStatus));
+      }
+
+      const width = this.callNumber("raw2dng_get_raw_width", [handle]);
+      const height = this.callNumber("raw2dng_get_raw_height", [handle]);
+      const imagePointer = this.callNumber("raw2dng_get_raw_image_ptr", [handle]);
+      const pixelCount = this.callNumber("raw2dng_get_raw_image_count", [handle]);
+      if (imagePointer === 0 || pixelCount === 0) {
+        throw new RuntimeUnavailableError("LibRaw unpacked the file but did not expose a single-plane raw buffer.");
+      }
+
+      const heapOffset = imagePointer / Uint16Array.BYTES_PER_ELEMENT;
+      const imageData = new Uint16Array(pixelCount);
+      imageData.set(this.runtime.HEAPU16.subarray(heapOffset, heapOffset + pixelCount));
+
+      return {
+        width,
+        height,
+        bitDepth: this.callNumber("raw2dng_get_bit_depth", [handle]),
+        cfaPattern: [
+          this.callNumber("raw2dng_get_cfa", [handle, 0, 0]),
+          this.callNumber("raw2dng_get_cfa", [handle, 0, 1]),
+          this.callNumber("raw2dng_get_cfa", [handle, 1, 0]),
+          this.callNumber("raw2dng_get_cfa", [handle, 1, 1])
+        ],
+        blackLevel: this.callNumber("raw2dng_get_black_level", [handle]),
+        whiteLevel: this.callNumber("raw2dng_get_white_level", [handle]),
+        activeArea: [
+          this.callNumber("raw2dng_get_top_margin", [handle]),
+          this.callNumber("raw2dng_get_left_margin", [handle]),
+          this.callNumber("raw2dng_get_top_margin", [handle]) + this.callNumber("raw2dng_get_visible_height", [handle]),
+          this.callNumber("raw2dng_get_left_margin", [handle]) + this.callNumber("raw2dng_get_visible_width", [handle])
+        ],
+        imageData,
+        metadata: {
+          make: this.readString("raw2dng_get_make", [handle]),
+          model: this.readString("raw2dng_get_model", [handle]),
+          orientation: mapOrientation(this.callNumber("raw2dng_get_flip", [handle])),
+          colorMatrix1: [
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 0]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 1]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 2]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 0]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 1]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 1, 2]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 0]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 1]),
+            this.callFloat("raw2dng_get_rgb_cam", [handle, 2, 2])
+          ],
+          asShotNeutral: deriveAsShotNeutral([
+            this.callFloat("raw2dng_get_cam_mul", [handle, 0]),
+            this.callFloat("raw2dng_get_cam_mul", [handle, 1]),
+            this.callFloat("raw2dng_get_cam_mul", [handle, 2])
+          ]),
+          calibrationIlluminant1: 21
+        }
+      };
+    } finally {
+      this.close(handle, inputPointer);
+    }
+  }
+
+  private open(input: ArrayBuffer): { handle: number; inputPointer: number } {
+    const handle = this.callNumber("raw2dng_create", []);
+    const inputPointer = this.runtime._malloc!(input.byteLength);
+    this.runtime.HEAPU8.set(new Uint8Array(input), inputPointer);
+    const openStatus = this.callNumber("raw2dng_open_buffer", [handle, inputPointer, input.byteLength]);
+    if (openStatus !== 0) {
+      this.close(handle, inputPointer);
+      throw new RuntimeUnavailableError(this.describeError(openStatus));
+    }
+    return { handle, inputPointer };
+  }
+
+  private close(handle: number, inputPointer: number): void {
+    this.callVoid("raw2dng_recycle", [handle]);
+    this.callVoid("raw2dng_destroy", [handle]);
+    this.runtime._free!(inputPointer);
+  }
+
+  private describeError(code: number): string {
+    if (!this.runtime.UTF8ToString) {
+      throw new RuntimeUnavailableError();
+    }
+    const pointer = this.callNumber("raw2dng_strerror", [code], "number");
+    return this.runtime.UTF8ToString(pointer);
+  }
+
+  private callNumber(name: string, args: unknown[], returnType: "number" | "string" = "number"): number {
+    return Number(this.runtime.ccall!(name, returnType, new Array(args.length).fill("number"), args));
+  }
+
+  private callFloat(name: string, args: unknown[]): number {
+    return Number(this.runtime.ccall!(name, "number", new Array(args.length).fill("number"), args));
+  }
+
+  private readString(name: string, args: unknown[]): string {
+    if (!this.runtime.UTF8ToString) {
+      return "";
+    }
+    const pointer = this.callNumber(name, args, "number");
+    return pointer ? this.runtime.UTF8ToString(pointer) : "";
+  }
+
+  private callVoid(name: string, args: unknown[]): void {
+    this.runtime.ccall!(name, null, new Array(args.length).fill("number"), args);
+  }
+}
+
+function assertRuntime(runtime: GeneratedRuntime): asserts runtime is GeneratedRuntime & Required<Pick<GeneratedRuntime, "ccall" | "_malloc" | "_free">> {
+  if (!runtime.ccall || !runtime._malloc || !runtime._free) {
+    throw new RuntimeUnavailableError("Generated LibRaw WASM runtime is missing expected exports.");
+  }
+}
+
+function deriveAsShotNeutral(values: [number, number, number]): [number, number, number] {
+  const safe = values.map((value) => (value > 0 ? 1 / value : 1)) as [number, number, number];
+  const green = safe[1] || 1;
+  return [safe[0] / green, 1, safe[2] / green];
+}
+
+function mapOrientation(flip: number): number {
+  switch (flip) {
+    case 3:
+      return 3;
+    case 5:
+      return 8;
+    case 6:
+      return 6;
+    default:
+      return 1;
   }
 }

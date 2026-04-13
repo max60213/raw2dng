@@ -179,6 +179,22 @@ float raw2dng_get_baseline_exposure(int handle) {
   return processor->imgdata.color.dng_levels.baseline_exposure;
 }
 
+int raw2dng_get_opcode3_len(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor) {
+    return 0;
+  }
+  return static_cast<int>(processor->imgdata.color.dng_levels.rawopcodes[2].len);
+}
+
+int raw2dng_get_opcode3_ptr(int handle) {
+  LibRaw *processor = lookup(handle);
+  if (!processor || !processor->imgdata.color.dng_levels.rawopcodes[2].data) {
+    return 0;
+  }
+  return static_cast<int>(reinterpret_cast<uintptr_t>(processor->imgdata.color.dng_levels.rawopcodes[2].data));
+}
+
 float raw2dng_get_cam_mul(int handle, int index) {
   LibRaw *processor = lookup(handle);
   if (!processor || index < 0 || index > 3) {

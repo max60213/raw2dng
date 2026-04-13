@@ -101,7 +101,8 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
           analogBalance: this.readAnalogBalance(handle),
           calibrationIlluminant1: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 0])) ?? 21,
           calibrationIlluminant2: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 1])) ?? undefined,
-          baselineExposure: this.readBaselineExposure(handle)
+          baselineExposure: this.readBaselineExposure(handle),
+          opcodeList3: this.readOpcodeList3(handle)
         }
       };
     } finally {
@@ -195,6 +196,15 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
   private readBaselineExposure(handle: number): number | undefined {
     const value = this.callFloat("raw2dng_get_baseline_exposure", [handle]);
     return Number.isFinite(value) && value > -998 ? value : undefined;
+  }
+
+  private readOpcodeList3(handle: number): Uint8Array | undefined {
+    const length = this.callNumber("raw2dng_get_opcode3_len", [handle]);
+    const pointer = this.callNumber("raw2dng_get_opcode3_ptr", [handle]);
+    if (length <= 0 || pointer === 0) {
+      return undefined;
+    }
+    return new Uint8Array(this.runtime.HEAPU8.slice(pointer, pointer + length));
   }
 }
 

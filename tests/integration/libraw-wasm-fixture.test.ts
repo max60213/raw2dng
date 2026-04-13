@@ -25,6 +25,9 @@ describe("LibRaw WASM real fixtures", () => {
     expect(extraction.width).toBeGreaterThan(0);
     expect(extraction.height).toBeGreaterThan(0);
     expect(extraction.imageData.length).toBe(extraction.width * extraction.height);
+    expect(extraction.metadata.colorMatrix2).toBeDefined();
+    expect(extraction.metadata.baselineExposure).toBeDefined();
+    expect(extraction.metadata.opcodeList3?.byteLength).toBeGreaterThan(0);
 
     const output = buildDng({
       width: extraction.width,

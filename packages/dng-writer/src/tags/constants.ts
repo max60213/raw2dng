@@ -48,6 +48,7 @@ export const DNG_TAGS = {
   calibrationIlluminant1: 50778,
   calibrationIlluminant2: 50779,
   activeArea: 50829,
+  opcodeList3: 51022,
   cfaPlaneColor: 50710,
   cfaLayout: 50711
 } as const;

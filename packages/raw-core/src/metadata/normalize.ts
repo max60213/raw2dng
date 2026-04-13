@@ -24,6 +24,7 @@ export function normalizeRawMetadata(extraction: RawExtractionResult): Normalize
     calibrationIlluminant1: metadata.calibrationIlluminant1 || 21,
     calibrationIlluminant2: metadata.calibrationIlluminant2,
     baselineExposure: metadata.baselineExposure,
+    opcodeList3: metadata.opcodeList3,
     blackLevel: extraction.blackLevel,
     whiteLevel: extraction.whiteLevel,
     activeArea: extraction.activeArea,

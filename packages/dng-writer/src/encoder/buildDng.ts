@@ -113,6 +113,7 @@ function buildEntries(input: DngBuildInput, imageByteLength: number): TagEntry[]
     shortTag(DNG_TAGS.calibrationIlluminant1, input.metadata.calibrationIlluminant1),
     ...(input.metadata.calibrationIlluminant2 ? [shortTag(DNG_TAGS.calibrationIlluminant2, input.metadata.calibrationIlluminant2)] : []),
     longArrayTag(DNG_TAGS.activeArea, input.metadata.activeArea),
+    ...(input.metadata.opcodeList3 ? [undefinedTag(DNG_TAGS.opcodeList3, input.metadata.opcodeList3)] : []),
     byteArrayTag(DNG_TAGS.cfaPlaneColor, [0, 1, 2]),
     shortTag(DNG_TAGS.cfaLayout, 1)
   ].sort((left, right) => left.id - right.id);
@@ -169,6 +170,15 @@ function byteArrayTag(id: number, values: number[]): TagEntry {
     type: TIFF_TYPES.byte,
     count: values.length,
     value: new Uint8Array(values)
+  };
+}
+
+function undefinedTag(id: number, value: Uint8Array): TagEntry {
+  return {
+    id,
+    type: TIFF_TYPES.undefined,
+    count: value.length,
+    value
   };
 }
 

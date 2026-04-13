@@ -63,6 +63,7 @@ export interface RawCameraMetadata {
   calibrationIlluminant1: number;
   calibrationIlluminant2?: number;
   baselineExposure?: number;
+  opcodeList3?: Uint8Array;
 }
 
 export interface RawExtractionResult {
@@ -92,6 +93,7 @@ export interface NormalizedRawMetadata {
   calibrationIlluminant1: number;
   calibrationIlluminant2?: number;
   baselineExposure?: number;
+  opcodeList3?: Uint8Array;
   blackLevel: number;
   whiteLevel: number;
   activeArea: [number, number, number, number];

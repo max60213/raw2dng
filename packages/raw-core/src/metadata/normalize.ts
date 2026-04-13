@@ -19,6 +19,16 @@ export function normalizeRawMetadata(extraction: RawExtractionResult): Normalize
     blackLevel: extraction.blackLevel,
     whiteLevel: extraction.whiteLevel,
     activeArea: extraction.activeArea,
-    cfaPattern: extraction.cfaPattern
+    cfaPattern: extraction.cfaPattern.map(normalizeCfaComponent) as [number, number, number, number]
   };
+}
+
+function normalizeCfaComponent(value: number): number {
+  if (value === 3) {
+    return 1;
+  }
+  if (value < 0 || value > 2) {
+    return 0;
+  }
+  return value;
 }

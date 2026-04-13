@@ -7,6 +7,7 @@
     "dev": "vite --config apps/web/vite.config.ts",
     "build": "vite build --config apps/web/vite.config.ts",
     "build:wasm": "echo 'source .tools/emsdk/emsdk_env.sh && bash packages/libraw-wasm/scripts/build-wasm.sh'",
+    "inspect:roundtrip": "vite-node --config vitest.config.ts scripts/generate-roundtrip.ts",
     "preview": "vite preview --config apps/web/vite.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --config vitest.config.ts",

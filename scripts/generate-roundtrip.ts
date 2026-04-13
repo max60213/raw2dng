@@ -1,0 +1,63 @@
+import { readFile, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import createRuntime from "../packages/libraw-wasm/src/generated/libraw.js";
+import { GeneratedLibRawAdapter } from "../packages/libraw-wasm/src/bindings/generatedAdapter";
+import { normalizeRawMetadata } from "../packages/raw-core/src";
+import { buildDng } from "../packages/dng-writer/src";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const repoRoot = path.resolve(__dirname, "..");
+
+async function main() {
+  const sourceName = process.argv[2] ?? "canon-eos5d-sample.cr2";
+  const outputName = process.argv[3] ?? `${sourceName.replace(/\.[^.]+$/, "")}-roundtrip.dng`;
+
+  const [wasmBinary, fixture] = await Promise.all([
+    readFile(path.resolve(repoRoot, "packages/libraw-wasm/src/generated/libraw.wasm")),
+    readFile(path.resolve(repoRoot, "tests/fixtures/raw", sourceName))
+  ]);
+
+  const runtime = await createRuntime({ wasmBinary });
+  const adapter = new GeneratedLibRawAdapter(
+    runtime as ConstructorParameters<typeof GeneratedLibRawAdapter>[0]
+  );
+  const extraction = await adapter.extract(
+    fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
+  );
+
+  const blob = buildDng({
+    width: extraction.width,
+    height: extraction.height,
+    bitDepth: extraction.bitDepth,
+    imageData: extraction.imageData,
+    metadata: normalizeRawMetadata(extraction)
+  });
+
+  const outputBuffer = Buffer.from(await blob.arrayBuffer());
+  const outputPath = path.resolve(repoRoot, "tests/expected", outputName);
+  await writeFile(outputPath, outputBuffer);
+
+  process.stdout.write(
+    JSON.stringify(
+      {
+        sourceName,
+        outputName,
+        width: extraction.width,
+        height: extraction.height,
+        bitDepth: extraction.bitDepth,
+        make: extraction.metadata.make,
+        model: extraction.metadata.model,
+        outputBytes: outputBuffer.length
+      },
+      null,
+      2
+    )
+  );
+}
+
+void main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

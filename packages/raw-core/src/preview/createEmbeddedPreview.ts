@@ -39,9 +39,9 @@ export function createEmbeddedPreview(input: LinearExtractionResult, maxDimensio
 function mapToDisplayCoordinates(x: number, y: number, width: number, height: number, orientation: number): [number, number] {
   switch (orientation) {
     case 6:
-      return [y, height - 1 - x];
-    case 8:
       return [width - 1 - y, x];
+    case 8:
+      return [y, height - 1 - x];
     case 3:
       return [width - 1 - x, height - 1 - y];
     default:
@@ -53,5 +53,9 @@ function normalizeToByte(value: number): number {
   if (!Number.isFinite(value) || value <= 0) {
     return 0;
   }
-  return Math.max(0, Math.min(255, Math.round(value / 257)));
+  const normalized = Math.max(0, Math.min(1, value / 65535));
+  const srgb = normalized <= 0.0031308
+    ? 12.92 * normalized
+    : 1.055 * Math.pow(normalized, 1 / 2.4) - 0.055;
+  return Math.max(0, Math.min(255, Math.round(srgb * 255)));
 }

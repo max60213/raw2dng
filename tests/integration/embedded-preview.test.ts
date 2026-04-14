@@ -22,7 +22,7 @@ describe("embedded preview helpers", () => {
     expect(preview.width).toBe(2);
     expect(preview.height).toBe(1);
     expect(preview.orientation).toBe(1);
-    expect(Array.from(preview.imageData)).toEqual([255, 128, 0, 1, 2, 3]);
+    expect(Array.from(preview.imageData)).toEqual([255, 188, 0, 13, 22, 28]);
   });
 
 
@@ -46,6 +46,42 @@ describe("embedded preview helpers", () => {
     expect(preview.width).toBe(3);
     expect(preview.height).toBe(2);
     expect(preview.orientation).toBe(6);
+  });
+
+  it("maps portrait orientation pixels back to sensor order before tagging orientation", () => {
+    const input: LinearExtractionResult = {
+      width: 2,
+      height: 3,
+      bitDepth: 16,
+      channels: 3,
+      imageData: new Uint16Array([
+        // display row 0: a, b
+        0, 0, 0,       65535, 0, 0,
+        // display row 1: c, d
+        0, 65535, 0,   0, 0, 65535,
+        // display row 2: e, f
+        65535, 65535, 0,   65535, 0, 65535
+      ]),
+      metadata: {
+        make: "Test",
+        model: "Camera",
+        orientation: 6,
+        colorMatrix1: [1,0,0,0,1,0,0,0,1],
+        asShotNeutral: [1,1,1],
+        calibrationIlluminant1: 21
+      }
+    };
+
+    const preview = createEmbeddedPreview(input, 1024);
+    expect(preview.width).toBe(3);
+    expect(preview.height).toBe(2);
+    expect(preview.orientation).toBe(6);
+    expect(Array.from(preview.imageData)).toEqual([
+      // sensor row 0: b, d, f
+      255, 0, 0,   0, 0, 255,   255, 0, 255,
+      // sensor row 1: a, c, e
+      0, 0, 0,   0, 255, 0,   255, 255, 0
+    ]);
   });
 
   it("appends a thumbnail IFD to an existing DNG byte stream", () => {

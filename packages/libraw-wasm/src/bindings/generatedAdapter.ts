@@ -1,6 +1,6 @@
 import { RuntimeUnavailableError } from "../../../raw-core/src/errors";
 import type { LinearExtractionResult, RawExtractionResult, RawProbeResult } from "../../../raw-core/src/types";
-import type { LibRawAdapter } from "../api/types";
+import type { LibRawAdapter, RawEmbeddedJpegThumbnail } from "../api/types";
 import { selectColorMatrix } from "../runtime/selectColorMatrix";
 import { selectWhiteLevel } from "../runtime/selectWhiteLevel";
 
@@ -128,6 +128,56 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
         channels: 3,
         imageData,
         metadata
+      };
+    } finally {
+      this.close(handle, inputPointer);
+    }
+  }
+
+  async extractEmbeddedThumbnail(input: ArrayBuffer): Promise<RawEmbeddedJpegThumbnail | null> {
+    assertRuntime(this.runtime);
+    const { handle, inputPointer } = this.open(input);
+    try {
+      const status = this.callNumber("raw2dng_extract_thumbnail", [handle]);
+      if (status !== 0) {
+        return null;
+      }
+
+      const type = this.callNumber("raw2dng_get_thumb_type", [handle]);
+      if (type !== LIBRAW_IMAGE_JPEG) {
+        return null;
+      }
+
+      const dataPointer = this.callNumber("raw2dng_get_thumb_data_ptr", [handle]);
+      const dataSize = this.callNumber("raw2dng_get_thumb_data_size", [handle]);
+      if (dataPointer === 0 || dataSize <= 0) {
+        return null;
+      }
+
+      const data = new Uint8Array(dataSize);
+      data.set(this.runtime.HEAPU8.subarray(dataPointer, dataPointer + dataSize));
+
+      let width = this.callNumber("raw2dng_get_thumb_width", [handle]);
+      let height = this.callNumber("raw2dng_get_thumb_height", [handle]);
+      if (width <= 0 || height <= 0) {
+        const parsedSize = parseJpegSize(data);
+        if (parsedSize) {
+          width = parsedSize.width;
+          height = parsedSize.height;
+        }
+      }
+
+      if (width <= 0 || height <= 0) {
+        return null;
+      }
+
+      const orientation = mapOrientation(this.callNumber("raw2dng_get_thumb_flip", [handle]));
+      return {
+        format: "jpeg",
+        width,
+        height,
+        orientation,
+        data
       };
     } finally {
       this.close(handle, inputPointer);
@@ -297,6 +347,8 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
   }
 }
 
+const LIBRAW_IMAGE_JPEG = 1;
+
 function assertRuntime(runtime: GeneratedRuntime): asserts runtime is GeneratedRuntime & Required<Pick<GeneratedRuntime, "ccall" | "_malloc" | "_free">> {
   if (!runtime.ccall || !runtime._malloc || !runtime._free) {
     throw new RuntimeUnavailableError("Generated LibRaw WASM runtime is missing expected exports.");
@@ -331,4 +383,50 @@ function normalizeIlluminant(value: number): number | undefined {
     return undefined;
   }
   return value;
+}
+
+function parseJpegSize(bytes: Uint8Array): { width: number; height: number } | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return null;
+  }
+
+  let offset = 2;
+  while (offset + 8 <= bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+
+    const marker = bytes[offset + 1];
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9) {
+      continue;
+    }
+
+    if (offset + 2 > bytes.length) {
+      return null;
+    }
+
+    const segmentLength = (bytes[offset] << 8) | bytes[offset + 1];
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) {
+      return null;
+    }
+
+    const isSof =
+      marker >= 0xc0 &&
+      marker <= 0xcf &&
+      marker !== 0xc4 &&
+      marker !== 0xc8 &&
+      marker !== 0xcc;
+
+    if (isSof && segmentLength >= 7) {
+      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      return width > 0 && height > 0 ? { width, height } : null;
+    }
+
+    offset += segmentLength;
+  }
+
+  return null;
 }

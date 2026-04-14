@@ -5,7 +5,7 @@ import { GeneratedLibRawAdapter } from "../packages/libraw-wasm/src/bindings/gen
 import { createGeneratedRuntimeNode } from "../packages/libraw-wasm/src/loader/createGeneratedRuntimeNode";
 import { loadGeneratedModule } from "../packages/libraw-wasm/src/loader/loadGeneratedModule";
 import { createAdobeDngAdapterNode } from "../packages/adobe-dng-wasm/src/node";
-import { appendEmbeddedThumbnailIfd, createEmbeddedPreview, normalizeRawMetadata } from "../packages/raw-core/src";
+import { appendEmbeddedJpegThumbnailIfd, normalizeRawMetadata } from "../packages/raw-core/src";
 import { buildDng } from "../packages/dng-writer/src";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -66,13 +66,17 @@ async function main() {
       });
 
   let outputBytes = new Uint8Array(await blob.arrayBuffer());
-  try {
-    const linear = await adapter.extractLinear(
-      fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
-    );
-    outputBytes = appendEmbeddedThumbnailIfd(outputBytes, createEmbeddedPreview(linear));
-  } catch {
-    // keep base DNG bytes when a preview cannot be rendered
+  const embeddedThumbnail = await adapter.extractEmbeddedThumbnail(
+    fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
+  ).catch(() => null);
+
+  if (embeddedThumbnail) {
+    outputBytes = appendEmbeddedJpegThumbnailIfd(outputBytes, {
+      width: embeddedThumbnail.width,
+      height: embeddedThumbnail.height,
+      orientation: embeddedThumbnail.orientation,
+      jpegData: embeddedThumbnail.data
+    });
   }
 
   const outputBuffer = Buffer.from(outputBytes.buffer.slice(outputBytes.byteOffset, outputBytes.byteOffset + outputBytes.byteLength) as ArrayBuffer);

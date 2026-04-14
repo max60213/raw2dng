@@ -8,3 +8,4 @@ export * from "./types";
 export * from "./preview/createEmbeddedPreview";
 
 export * from "./preview/appendEmbeddedThumbnailIfd";
+export * from "./preview/appendEmbeddedJpegThumbnailIfd";

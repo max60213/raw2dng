@@ -1,7 +1,7 @@
 import { createAdobeDngAdapter } from "../../../adobe-dng-wasm/src";
 import { buildDng } from "../../../dng-writer/src";
 import { createLibRawAdapter } from "../../../libraw-wasm/src";
-import { appendEmbeddedThumbnailIfd, createEmbeddedPreview, normalizeRawMetadata, type EmbeddedPreview } from "../../../raw-core/src";
+import { appendEmbeddedJpegThumbnailIfd, normalizeRawMetadata } from "../../../raw-core/src";
 import type { WorkerRequest, WorkerResponse } from "../protocol/messages";
 
 let adobeAdapterPromise: ReturnType<typeof createAdobeDngAdapter> | null = null;
@@ -77,12 +77,7 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         message: backend === "adobe" ? "Building DNG with Adobe prototype" : "Building DNG"
       });
 
-      let preview: EmbeddedPreview | null = null;
-      try {
-        preview = createEmbeddedPreview(await adapter.extractLinear(message.bytes));
-      } catch {
-        preview = null;
-      }
+      const preview = await adapter.extractEmbeddedThumbnail(message.bytes).catch(() => null);
 
       let blob: Blob;
       if (backend === "adobe") {
@@ -115,7 +110,12 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       }
 
       if (preview) {
-        const outputBytes = appendEmbeddedThumbnailIfd(new Uint8Array(await blob.arrayBuffer()), preview);
+        const outputBytes = appendEmbeddedJpegThumbnailIfd(new Uint8Array(await blob.arrayBuffer()), {
+          width: preview.width,
+          height: preview.height,
+          orientation: preview.orientation,
+          jpegData: preview.data
+        });
         const outputBuffer = outputBytes.buffer.slice(outputBytes.byteOffset, outputBytes.byteOffset + outputBytes.byteLength) as ArrayBuffer;
         blob = new Blob([outputBuffer], { type: blob.type || "image/x-adobe-dng" });
       }

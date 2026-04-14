@@ -101,6 +101,18 @@ describe("LibRaw WASM real fixtures", () => {
     expect(bytes[2]).toBe(42);
     expect(output.size).toBeGreaterThan(1024);
   }, 60_000);
+
+  it("extracts the source embedded JPEG thumbnail from Canon CR2", async () => {
+    const adapter = await createAdapter();
+    const fixture = await readFixture("canon-eos5d-sample.cr2");
+    const thumbnail = await adapter.extractEmbeddedThumbnail(fixture);
+    expect(thumbnail).not.toBeNull();
+    expect(thumbnail?.format).toBe("jpeg");
+    expect(thumbnail?.width ?? 0).toBeGreaterThan(0);
+    expect(thumbnail?.height ?? 0).toBeGreaterThan(0);
+    expect(thumbnail?.data?.[0]).toBe(0xff);
+    expect(thumbnail?.data?.[1]).toBe(0xd8);
+  }, 60_000);
 });
 
 async function createAdapter() {

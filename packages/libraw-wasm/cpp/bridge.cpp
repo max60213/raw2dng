@@ -13,6 +13,7 @@ using Handle = int32_t;
 struct Context {
   std::unique_ptr<LibRaw> processor;
   libraw_processed_image_t *processed = nullptr;
+  libraw_processed_image_t *thumbnail = nullptr;
 };
 
 std::unordered_map<Handle, Context> g_instances;
@@ -35,6 +36,13 @@ void clear_processed(Context *context) {
   if (context && context->processed) {
     LibRaw::dcraw_clear_mem(context->processed);
     context->processed = nullptr;
+  }
+}
+
+void clear_thumbnail(Context *context) {
+  if (context && context->thumbnail) {
+    LibRaw::dcraw_clear_mem(context->thumbnail);
+    context->thumbnail = nullptr;
   }
 }
 
@@ -83,7 +91,7 @@ extern "C" {
 
 int raw2dng_create() {
   const Handle handle = g_nextHandle++;
-  g_instances.emplace(handle, Context{std::make_unique<LibRaw>(0), nullptr});
+  g_instances.emplace(handle, Context{std::make_unique<LibRaw>(0), nullptr, nullptr});
   return handle;
 }
 
@@ -91,6 +99,7 @@ void raw2dng_destroy(int handle) {
   Context *context = lookup(handle);
   if (context) {
     clear_processed(context);
+    clear_thumbnail(context);
   }
   g_instances.erase(handle);
 }
@@ -101,6 +110,7 @@ int raw2dng_open_buffer(int handle, const uint8_t *buffer, int size) {
     return EINVAL;
   }
   clear_processed(context);
+  clear_thumbnail(context);
   return context->processor->open_buffer(buffer, static_cast<size_t>(size));
 }
 
@@ -136,12 +146,36 @@ int raw2dng_process_linear(int handle) {
   return LIBRAW_SUCCESS;
 }
 
+int raw2dng_extract_thumbnail(int handle) {
+  Context *context = lookup(handle);
+  if (!context || !context->processor) {
+    return EINVAL;
+  }
+
+  clear_thumbnail(context);
+
+  const int unpackStatus = context->processor->unpack_thumb();
+  if (unpackStatus != LIBRAW_SUCCESS) {
+    return unpackStatus;
+  }
+
+  int errcode = 0;
+  context->thumbnail = context->processor->dcraw_make_mem_thumb(&errcode);
+  if (!context->thumbnail || errcode != LIBRAW_SUCCESS) {
+    clear_thumbnail(context);
+    return errcode == 0 ? LIBRAW_UNSPECIFIED_ERROR : errcode;
+  }
+
+  return LIBRAW_SUCCESS;
+}
+
 void raw2dng_recycle(int handle) {
   Context *context = lookup(handle);
   if (!context || !context->processor) {
     return;
   }
   clear_processed(context);
+  clear_thumbnail(context);
   context->processor->recycle();
 }
 
@@ -409,6 +443,50 @@ int raw2dng_get_processed_data_ptr(int handle) {
 int raw2dng_get_processed_data_size(int handle) {
   Context *context = lookup(handle);
   return (context && context->processed) ? static_cast<int>(context->processed->data_size) : 0;
+}
+
+int raw2dng_get_thumb_type(int handle) {
+  Context *context = lookup(handle);
+  return (context && context->thumbnail) ? context->thumbnail->type : 0;
+}
+
+int raw2dng_get_thumb_width(int handle) {
+  Context *context = lookup(handle);
+  return (context && context->thumbnail) ? context->thumbnail->width : 0;
+}
+
+int raw2dng_get_thumb_height(int handle) {
+  Context *context = lookup(handle);
+  return (context && context->thumbnail) ? context->thumbnail->height : 0;
+}
+
+int raw2dng_get_thumb_flip(int handle) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor) {
+    return 0;
+  }
+
+  if (processor->imgdata.thumbs_list.thumbcount > 0) {
+    const int tflip = processor->imgdata.thumbs_list.thumblist[0].tflip;
+    if (tflip != 0xffff) {
+      return tflip;
+    }
+  }
+
+  return processor->imgdata.sizes.flip;
+}
+
+int raw2dng_get_thumb_data_ptr(int handle) {
+  Context *context = lookup(handle);
+  if (!context || !context->thumbnail) {
+    return 0;
+  }
+  return static_cast<int>(reinterpret_cast<uintptr_t>(context->thumbnail->data));
+}
+
+int raw2dng_get_thumb_data_size(int handle) {
+  Context *context = lookup(handle);
+  return (context && context->thumbnail) ? static_cast<int>(context->thumbnail->data_size) : 0;
 }
 
 const char *raw2dng_get_make(int handle) {

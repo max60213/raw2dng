@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { appendEmbeddedThumbnailIfd, createEmbeddedPreview, type LinearExtractionResult } from "../../packages/raw-core/src";
+import {
+  appendEmbeddedJpegThumbnailIfd,
+  appendEmbeddedThumbnailIfd,
+  createEmbeddedPreview,
+  type LinearExtractionResult
+} from "../../packages/raw-core/src";
 
 describe("embedded preview helpers", () => {
   it("downscales 16-bit linear RGB data into an 8-bit embedded preview", () => {
@@ -104,6 +109,38 @@ describe("embedded preview helpers", () => {
 
     const preview = { width: 1, height: 1, orientation: 1, imageData: new Uint8Array([255, 0, 0]) };
     const output = appendEmbeddedThumbnailIfd(base, preview);
+    const outputView = new DataView(output.buffer);
+    const nextIfdOffset = outputView.getUint32(34, true);
+    expect(nextIfdOffset).toBeGreaterThan(base.byteLength);
+    expect(outputView.getUint16(nextIfdOffset, true)).toBeGreaterThan(0);
+  });
+
+  it("appends an embedded JPEG thumbnail IFD", () => {
+    const base = new Uint8Array(8 + 2 + 2 * 12 + 4);
+    const view = new DataView(base.buffer);
+    base[0] = 0x49;
+    base[1] = 0x49;
+    view.setUint16(2, 42, true);
+    view.setUint32(4, 8, true);
+    view.setUint16(8, 2, true);
+    view.setUint16(10, 256, true);
+    view.setUint16(12, 4, true);
+    view.setUint32(14, 1, true);
+    view.setUint32(18, 2, true);
+    view.setUint16(22, 257, true);
+    view.setUint16(24, 4, true);
+    view.setUint32(26, 1, true);
+    view.setUint32(30, 2, true);
+    view.setUint32(34, 0, true);
+
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9]);
+    const output = appendEmbeddedJpegThumbnailIfd(base, {
+      width: 1,
+      height: 1,
+      orientation: 6,
+      jpegData: jpeg
+    });
+
     const outputView = new DataView(output.buffer);
     const nextIfdOffset = outputView.getUint32(34, true);
     expect(nextIfdOffset).toBeGreaterThan(base.byteLength);

@@ -4,3 +4,7 @@ export * from "./errors";
 export * from "./metadata/normalize";
 export * from "./pipeline/mobileQueue";
 export * from "./types";
+
+export * from "./preview/createEmbeddedPreview";
+
+export * from "./preview/appendEmbeddedThumbnailIfd";

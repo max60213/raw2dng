@@ -3,35 +3,33 @@
 ## Version 1
 
 - Browser-only RAW to DNG conversion is working end-to-end.
-- The current default output favors a smaller, more broadly openable DNG path.
+- `LibRaw + WASM` extraction pipeline is integrated into the worker runtime.
 - Validation coverage includes fixture smoke tests, browser smoke tests, and `exiftool` checks.
 
-## Next Major Goal
+## Completed Milestone
 
-### Move to Adobe DNG SDK for true Raw DNG output
+### Adobe DNG SDK integration for true Raw DNG output
 
-The current implementation relies on:
+This milestone is now completed:
 
-- `LibRaw + WASM` for RAW parsing
-- a custom TypeScript DNG writer for output packaging
+- Added a dedicated `packages/adobe-dng-wasm` package and generated WASM runtime.
+- Integrated Adobe DNG SDK encoding in `worker-runtime` as the preferred backend.
+- Kept the legacy TypeScript writer as a runtime fallback for availability and recovery safety.
+- Added integration coverage for Adobe DNG WASM fixture conversion.
 
-This is enough for a working v1, but it is not the long-term target for high-fidelity RAW preservation.
+## Next Focus
 
-The next planned direction is:
+### Stabilization and quality hardening
 
-1. Integrate Adobe DNG SDK into the conversion pipeline.
-2. Replace the custom output path for the primary export flow.
-3. Generate true Raw DNG instead of the current fallback-oriented path.
-4. Preserve more original sensor structure and camera-specific metadata.
-5. Reduce color/rendering drift across external RAW editors.
+1. Improve cross-editor compatibility for Adobe-generated DNG outputs.
+2. Reduce quality and metadata drift between camera models.
+3. Tighten fallback behavior and observability for backend selection.
+4. Expand regression validation across fixtures and external tools.
 
 ## Why This Matters
 
-The custom writer is useful for iteration speed, but it is not ideal for:
+The Adobe DNG SDK milestone closes the core architecture gap, but output quality still depends on iterative validation and metadata tuning. This phase is focused on:
 
-- exact RAW semantics
-- consistent camera metadata handling
-- cross-editor color fidelity
-- long-term compatibility with professional RAW tooling
-
-Adobe DNG SDK is the intended path for the next quality jump.
+- consistent behavior across editors
+- camera-specific metadata fidelity
+- predictable conversion outcomes in browser-only workflows

@@ -14,9 +14,9 @@ P.S. This tool is specifically motivated by Google Snapseed. Snapseed is genuine
 
 - Mobile-safe queue, capability gating, worker protocol, and DNG writer are implemented.
 - `LibRaw` is compiled to WebAssembly and committed under `packages/libraw-wasm/src/generated`.
-- The browser bundle can load the real `LibRaw` runtime instead of the placeholder unavailable adapter.
-- The default export path currently favors a smaller DNG output that is more broadly openable in mobile workflows.
-- The repository still contains an experimental `Linear Raw / Linear DNG` processing path for future quality work, but it is not the default export mode right now.
+- Adobe DNG SDK WebAssembly integration is completed under `packages/adobe-dng-wasm`.
+- The primary export flow now prefers the Adobe DNG SDK backend and falls back to the legacy writer when runtime availability or encoding fails.
+- The repository still keeps an experimental `Linear Raw / Linear DNG` path for ongoing quality work.
 
 ## Commands
 
@@ -45,7 +45,7 @@ bash scripts/exiftool-smoke.sh
 ## Roadmap
 
 Future plans are tracked in [docs/roadmap.md](./docs/roadmap.md).
-The next major direction is moving the primary export flow to Adobe DNG SDK so the project can produce true Raw DNG instead of relying on the current custom output path.
+The Adobe DNG SDK integration milestone is done. The next phase focuses on compatibility hardening, output consistency, and quality validation across editors.
 
 ## Project layout
 
@@ -53,18 +53,22 @@ The next major direction is moving the primary export flow to Adobe DNG SDK so t
 - `packages/raw-core`: task models, capability heuristics, normalization
 - `packages/dng-writer`: browser-side DNG writer
 - `packages/libraw-wasm`: LibRaw adapter boundary and WASM loader
+- `packages/adobe-dng-wasm`: Adobe DNG SDK WASM adapter and runtime loader
 - `packages/worker-runtime`: worker message contracts and conversion orchestration
 
-## LibRaw WASM
+## WASM artifacts
 
 Generated artifacts are committed at:
 
 - `packages/libraw-wasm/src/generated/libraw.js`
 - `packages/libraw-wasm/src/generated/libraw.wasm`
+- `packages/adobe-dng-wasm/src/generated/adobeDng.js`
+- `packages/adobe-dng-wasm/src/generated/adobeDng.wasm`
 
 To rebuild them locally, activate emsdk and run:
 
 ```bash
 source .tools/emsdk/emsdk_env.sh
 bash packages/libraw-wasm/scripts/build-wasm.sh
+bash packages/adobe-dng-wasm/scripts/build-wasm.sh
 ```

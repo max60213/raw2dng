@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 PKG_DIR="$ROOT_DIR/packages/adobe-dng-wasm"
-SDK_ROOT="$PKG_DIR/vendor/dng_sdk_1_7_1"
+SDK_ROOT="${RAW2DNG_ADOBE_DNG_SDK_DIR:-$PKG_DIR/vendor/dng_sdk_1_7_1}"
 SDK_SRC="$SDK_ROOT/dng_sdk/source"
 OUTPUT_DIR="$PKG_DIR/src/generated"
 BRIDGE="$PKG_DIR/cpp/bridge.cpp"
@@ -15,6 +15,11 @@ fi
 
 if [ ! -d "$SDK_SRC" ]; then
   echo "Adobe DNG SDK sources are missing at $SDK_SRC" >&2
+  echo "Download Adobe DNG SDK from:" >&2
+  echo "  https://helpx.adobe.com/security/products/dng-sdk.html" >&2
+  echo "  https://helpx.adobe.com/camera-raw/digital-negative.html" >&2
+  echo "Then extract to: $SDK_ROOT" >&2
+  echo "Or set RAW2DNG_ADOBE_DNG_SDK_DIR to your extracted SDK root." >&2
   exit 1
 fi
 

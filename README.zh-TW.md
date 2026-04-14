@@ -60,14 +60,23 @@ Adobe DNG SDK 整合里程碑已完成，接下來重點是相容性強化、輸
 
 ## WASM 產物
 
-repo 已包含生成好的：
+repo 內已提交：
 
 - `packages/libraw-wasm/src/generated/libraw.js`
 - `packages/libraw-wasm/src/generated/libraw.wasm`
-- `packages/adobe-dng-wasm/src/generated/adobeDng.js`
-- `packages/adobe-dng-wasm/src/generated/adobeDng.wasm`
 
-如果要本機重編：
+Adobe DNG SDK 原始碼與 Adobe 產出的 WASM 產物不會提交到這個 repository。
+
+請從 Adobe 官方頁面自行下載 DNG SDK，並解壓到：
+
+- `packages/adobe-dng-wasm/vendor/dng_sdk_1_7_1`
+
+官方連結：
+
+- https://helpx.adobe.com/security/products/dng-sdk.html
+- https://helpx.adobe.com/camera-raw/digital-negative.html
+
+本機重編步驟：
 
 ```bash
 source .tools/emsdk/emsdk_env.sh

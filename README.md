@@ -58,14 +58,23 @@ The Adobe DNG SDK integration milestone is done. The next phase focuses on compa
 
 ## WASM artifacts
 
-Generated artifacts are committed at:
+Committed artifacts:
 
 - `packages/libraw-wasm/src/generated/libraw.js`
 - `packages/libraw-wasm/src/generated/libraw.wasm`
-- `packages/adobe-dng-wasm/src/generated/adobeDng.js`
-- `packages/adobe-dng-wasm/src/generated/adobeDng.wasm`
 
-To rebuild them locally, activate emsdk and run:
+Adobe DNG SDK source and Adobe-generated WASM artifacts are intentionally not committed to this repository.
+
+Download Adobe DNG SDK from official Adobe pages, then extract it to:
+
+- `packages/adobe-dng-wasm/vendor/dng_sdk_1_7_1`
+
+Official links:
+
+- https://helpx.adobe.com/security/products/dng-sdk.html
+- https://helpx.adobe.com/camera-raw/digital-negative.html
+
+To rebuild locally, activate emsdk and run:
 
 ```bash
 source .tools/emsdk/emsdk_env.sh

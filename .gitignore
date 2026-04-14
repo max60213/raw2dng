@@ -4,3 +4,7 @@ node_modules/
 dist/
 .tools/
 tests/expected/*.dng
+dng_sdk*.zip
+packages/adobe-dng-wasm/vendor/dng_sdk_1_7_1/
+packages/adobe-dng-wasm/src/generated/adobeDng.js
+packages/adobe-dng-wasm/src/generated/adobeDng.wasm

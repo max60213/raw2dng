@@ -47,46 +47,46 @@ export class GeneratedAdobeDngAdapter implements AdobeDngAdapter {
       : 0;
 
     try {
+      const args = [
+        this.handle,
+        imagePointer,
+        input.imageData.length,
+        input.width,
+        input.height,
+        input.bitDepth,
+        input.metadata.activeArea[0],
+        input.metadata.activeArea[1],
+        input.metadata.activeArea[2],
+        input.metadata.activeArea[3],
+        input.metadata.defaultCropOrigin?.[0] ?? 0,
+        input.metadata.defaultCropOrigin?.[1] ?? 0,
+        input.metadata.defaultCropSize?.[0] ?? 0,
+        input.metadata.defaultCropSize?.[1] ?? 0,
+        input.metadata.blackLevel,
+        input.metadata.whiteLevel,
+        cfaPointer,
+        input.metadata.orientation,
+        makePointer,
+        modelPointer,
+        colorMatrix1Pointer,
+        colorMatrix2Pointer,
+        forwardMatrix1Pointer,
+        forwardMatrix2Pointer,
+        cameraCalibration1Pointer,
+        cameraCalibration2Pointer,
+        asShotNeutralPointer,
+        analogBalancePointer,
+        input.metadata.calibrationIlluminant1,
+        input.metadata.calibrationIlluminant2 ?? 0,
+        input.metadata.baselineExposure ?? 0,
+        input.metadata.baselineExposure !== undefined ? 1 : 0
+      ];
+
       const status = Number(this.runtime.ccall(
         "adobe_dng_encode_raw",
         "number",
-        [
-          "number", "number", "number", "number", "number", "number",
-          "number", "number", "number", "number", "number", "number",
-          "number", "number", "number", "number", "number", "number",
-          "number", "number", "number", "number", "number", "number",
-          "number", "number", "number", "number"
-        ],
-        [
-          this.handle,
-          imagePointer,
-          input.imageData.length,
-          input.width,
-          input.height,
-          input.bitDepth,
-          input.metadata.activeArea[0],
-          input.metadata.activeArea[1],
-          input.metadata.activeArea[2],
-          input.metadata.activeArea[3],
-          input.metadata.blackLevel,
-          input.metadata.whiteLevel,
-          cfaPointer,
-          input.metadata.orientation,
-          makePointer,
-          modelPointer,
-          colorMatrix1Pointer,
-          colorMatrix2Pointer,
-          forwardMatrix1Pointer,
-          forwardMatrix2Pointer,
-          cameraCalibration1Pointer,
-          cameraCalibration2Pointer,
-          asShotNeutralPointer,
-          analogBalancePointer,
-          input.metadata.calibrationIlluminant1,
-          input.metadata.calibrationIlluminant2 ?? 0,
-          input.metadata.baselineExposure ?? 0,
-          input.metadata.baselineExposure !== undefined ? 1 : 0
-        ]
+        new Array(args.length).fill("number"),
+        args
       ));
 
       if (status !== 0) {

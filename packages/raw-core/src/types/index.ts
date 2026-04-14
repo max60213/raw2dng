@@ -64,6 +64,8 @@ export interface RawCameraMetadata {
   calibrationIlluminant2?: number;
   baselineExposure?: number;
   opcodeList3?: Uint8Array;
+  defaultCropOrigin?: [number, number];
+  defaultCropSize?: [number, number];
 }
 
 export interface RawExtractionResult {
@@ -107,6 +109,8 @@ export interface NormalizedRawMetadata {
   whiteLevel: number;
   activeArea: [number, number, number, number];
   cfaPattern: [number, number, number, number];
+  defaultCropOrigin?: [number, number];
+  defaultCropSize?: [number, number];
 }
 
 export interface DngBuildInput {

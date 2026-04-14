@@ -166,6 +166,10 @@ int adobe_dng_encode_raw(
   int activeLeft,
   int activeBottom,
   int activeRight,
+  int defaultCropOriginH,
+  int defaultCropOriginV,
+  int defaultCropSizeH,
+  int defaultCropSizeV,
   int blackLevel,
   int whiteLevel,
   const int32_t *cfaPattern,
@@ -208,13 +212,18 @@ int adobe_dng_encode_raw(
 
     negative->SetModelName(uniqueCameraModel.c_str());
     negative->SetBaseOrientation(dng_orientation::TIFFtoDNG(static_cast<uint32_t>(orientation > 0 ? orientation : 1)));
-    negative->SetDefaultCropOrigin(static_cast<uint32_t>(activeLeft > 0 ? activeLeft : 0), static_cast<uint32_t>(activeTop > 0 ? activeTop : 0));
-    negative->SetDefaultCropSize(
-      static_cast<uint32_t>(activeRight > activeLeft ? activeRight - activeLeft : width),
-      static_cast<uint32_t>(activeBottom > activeTop ? activeBottom - activeTop : height)
-    );
+    const uint32_t cropOriginH = static_cast<uint32_t>(defaultCropOriginH > 0 ? defaultCropOriginH : 0);
+    const uint32_t cropOriginV = static_cast<uint32_t>(defaultCropOriginV > 0 ? defaultCropOriginV : 0);
+    const uint32_t cropSizeH = static_cast<uint32_t>(defaultCropSizeH > 0 ? defaultCropSizeH : (activeRight > activeLeft ? activeRight - activeLeft : width));
+    const uint32_t cropSizeV = static_cast<uint32_t>(defaultCropSizeV > 0 ? defaultCropSizeV : (activeBottom > activeTop ? activeBottom - activeTop : height));
+    negative->SetDefaultCropOrigin(cropOriginH, cropOriginV);
+    negative->SetDefaultCropSize(cropSizeH, cropSizeV);
     negative->SetActiveArea(dng_rect(activeTop, activeLeft, activeBottom > activeTop ? activeBottom : height, activeRight > activeLeft ? activeRight : width));
-    negative->SetBlackLevel(static_cast<real64>(blackLevel));
+    if (make && std::strstr(make, "Sony")) {
+      negative->SetQuadBlacks(static_cast<real64>(blackLevel), static_cast<real64>(blackLevel), static_cast<real64>(blackLevel), static_cast<real64>(blackLevel));
+    } else {
+      negative->SetBlackLevel(static_cast<real64>(blackLevel));
+    }
     negative->SetWhiteLevel(static_cast<uint32_t>(whiteLevel > 0 ? whiteLevel : ((1 << bitDepth) - 1)));
     negative->SetRGB();
     negative->SetBayerMosaic(derive_bayer_phase(cfaPattern));

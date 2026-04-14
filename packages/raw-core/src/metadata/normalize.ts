@@ -28,7 +28,9 @@ export function normalizeRawMetadata(extraction: RawExtractionResult): Normalize
     blackLevel: extraction.blackLevel,
     whiteLevel: extraction.whiteLevel,
     activeArea: extraction.activeArea,
-    cfaPattern: extraction.cfaPattern.map(normalizeCfaComponent) as [number, number, number, number]
+    cfaPattern: extraction.cfaPattern.map(normalizeCfaComponent) as [number, number, number, number],
+    defaultCropOrigin: metadata.defaultCropOrigin,
+    defaultCropSize: metadata.defaultCropSize
   };
 }
 

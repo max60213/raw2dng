@@ -155,6 +155,17 @@ int raw2dng_get_raw_height(int handle) {
   return processor ? processor->imgdata.sizes.raw_height : 0;
 }
 
+
+int raw2dng_get_iwidth(int handle) {
+  LibRaw *processor = lookupProcessor(handle);
+  return processor ? processor->imgdata.sizes.iwidth : 0;
+}
+
+int raw2dng_get_iheight(int handle) {
+  LibRaw *processor = lookupProcessor(handle);
+  return processor ? processor->imgdata.sizes.iheight : 0;
+}
+
 int raw2dng_get_visible_width(int handle) {
   LibRaw *processor = lookupProcessor(handle);
   return processor ? processor->imgdata.sizes.width : 0;
@@ -163,6 +174,22 @@ int raw2dng_get_visible_width(int handle) {
 int raw2dng_get_visible_height(int handle) {
   LibRaw *processor = lookupProcessor(handle);
   return processor ? processor->imgdata.sizes.height : 0;
+}
+
+
+int raw2dng_get_raw_inset_crop(int handle, int cropIndex, int fieldIndex) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || cropIndex < 0 || cropIndex > 1 || fieldIndex < 0 || fieldIndex > 3) {
+    return 0;
+  }
+  const auto &crop = processor->imgdata.sizes.raw_inset_crops[cropIndex];
+  switch (fieldIndex) {
+    case 0: return crop.cleft;
+    case 1: return crop.ctop;
+    case 2: return crop.cwidth;
+    case 3: return crop.cheight;
+    default: return 0;
+  }
 }
 
 int raw2dng_get_top_margin(int handle) {
@@ -190,6 +217,23 @@ int raw2dng_get_black_level(int handle) {
   return processor ? static_cast<int>(processor->imgdata.color.black) : 0;
 }
 
+
+
+int raw2dng_get_dng_whitelevel(int handle, int index) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || index < 0 || index > 3) {
+    return 0;
+  }
+  return static_cast<int>(processor->imgdata.color.dng_levels.dng_whitelevel[index]);
+}
+
+int raw2dng_get_default_crop(int handle, int index) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || index < 0 || index > 3) {
+    return 0;
+  }
+  return static_cast<int>(processor->imgdata.color.dng_levels.default_crop[index]);
+}
 
 int raw2dng_get_linear_max(int handle, int index) {
   LibRaw *processor = lookupProcessor(handle);
@@ -266,6 +310,15 @@ int raw2dng_get_opcode3_ptr(int handle) {
     return 0;
   }
   return static_cast<int>(reinterpret_cast<uintptr_t>(processor->imgdata.color.dng_levels.rawopcodes[2].data));
+}
+
+
+int raw2dng_get_dng_cblack(int handle, int index) {
+  LibRaw *processor = lookupProcessor(handle);
+  if (!processor || index < 0 || index >= LIBRAW_CBLACK_SIZE) {
+    return 0;
+  }
+  return static_cast<int>(processor->imgdata.color.dng_levels.dng_cblack[index]);
 }
 
 float raw2dng_get_cam_mul(int handle, int index) {

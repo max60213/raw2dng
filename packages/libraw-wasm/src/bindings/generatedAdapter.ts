@@ -1,6 +1,7 @@
 import { RuntimeUnavailableError } from "../../../raw-core/src/errors";
 import type { LinearExtractionResult, RawExtractionResult, RawProbeResult } from "../../../raw-core/src/types";
 import type { LibRawAdapter } from "../api/types";
+import { selectColorMatrix } from "../runtime/selectColorMatrix";
 import { selectWhiteLevel } from "../runtime/selectWhiteLevel";
 
 type GeneratedRuntime = {
@@ -193,6 +194,35 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
     return hasMeaningfulValues(values) ? values : null;
   }
 
+  private readCamXyzFallback(handle: number): [number, number, number, number, number, number, number, number, number] | null {
+    const values = [
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 0, 0]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 0, 1]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 0, 2]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 1, 0]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 1, 1]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 1, 2]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 2, 0]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 2, 1]),
+      this.callFloat("raw2dng_get_cam_xyz", [handle, 2, 2])
+    ] as [number, number, number, number, number, number, number, number, number];
+
+    return hasMeaningfulValues(values) ? values : null;
+  }
+
+  private readDefaultCrop(handle: number): { origin?: [number, number]; size?: [number, number] } {
+    const values = [0, 1, 2, 3].map((index) => this.callNumber("raw2dng_get_raw_inset_crop", [handle, 0, index]));
+    const [left, top, width, height] = values;
+    const valid = left >= 0 && top >= 0 && width > 0 && height > 0 && left !== 65535 && top !== 65535;
+    if (!valid) {
+      return {};
+    }
+    return {
+      origin: [left, top],
+      size: [width, height]
+    };
+  }
+
   private readRgbCamFallback(handle: number): [number, number, number, number, number, number, number, number, number] {
     return [
       this.callFloat("raw2dng_get_rgb_cam", [handle, 0, 0]),
@@ -236,12 +266,16 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
   }
 
   private readMetadata(handle: number) {
+    const make = this.readString("raw2dng_get_make", [handle]);
+    const camXyz = this.readCamXyzFallback(handle);
+    const rgbCam = this.readRgbCamFallback(handle);
+    const defaultCrop = this.readDefaultCrop(handle);
+
     return {
-      make: this.readString("raw2dng_get_make", [handle]),
+      make,
       model: this.readString("raw2dng_get_model", [handle]),
       orientation: mapOrientation(this.callNumber("raw2dng_get_flip", [handle])),
-      colorMatrix1: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 0) ??
-        this.readRgbCamFallback(handle),
+      colorMatrix1: selectColorMatrix(make, this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 0), camXyz, rgbCam),
       colorMatrix2: this.readDngMatrix("raw2dng_get_dng_color_matrix", handle, 1) ?? undefined,
       forwardMatrix1: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 0) ?? undefined,
       forwardMatrix2: this.readDngMatrix("raw2dng_get_forward_matrix", handle, 1) ?? undefined,
@@ -256,7 +290,9 @@ export class GeneratedLibRawAdapter implements LibRawAdapter {
       calibrationIlluminant1: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 0])) ?? 21,
       calibrationIlluminant2: normalizeIlluminant(this.callNumber("raw2dng_get_calibration_illuminant", [handle, 1])) ?? undefined,
       baselineExposure: this.readBaselineExposure(handle),
-      opcodeList3: this.readOpcodeList3(handle)
+      opcodeList3: this.readOpcodeList3(handle),
+      defaultCropOrigin: defaultCrop.origin,
+      defaultCropSize: defaultCrop.size
     };
   }
 }

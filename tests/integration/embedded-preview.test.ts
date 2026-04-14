@@ -21,7 +21,31 @@ describe("embedded preview helpers", () => {
     const preview = createEmbeddedPreview(input, 256);
     expect(preview.width).toBe(2);
     expect(preview.height).toBe(1);
+    expect(preview.orientation).toBe(1);
     expect(Array.from(preview.imageData)).toEqual([255, 128, 0, 1, 2, 3]);
+  });
+
+
+  it("keeps sensor-orientation dimensions for rotated images", () => {
+    const input: LinearExtractionResult = {
+      width: 2,
+      height: 3,
+      bitDepth: 16,
+      channels: 3,
+      imageData: new Uint16Array(2 * 3 * 3).fill(1024),
+      metadata: {
+        make: "Test",
+        model: "Camera",
+        orientation: 6,
+        colorMatrix1: [1,0,0,0,1,0,0,0,1],
+        asShotNeutral: [1,1,1],
+        calibrationIlluminant1: 21
+      }
+    };
+    const preview = createEmbeddedPreview(input, 1024);
+    expect(preview.width).toBe(3);
+    expect(preview.height).toBe(2);
+    expect(preview.orientation).toBe(6);
   });
 
   it("appends a thumbnail IFD to an existing DNG byte stream", () => {
@@ -42,7 +66,7 @@ describe("embedded preview helpers", () => {
     view.setUint32(30, 2, true);
     view.setUint32(34, 0, true);
 
-    const preview = { width: 1, height: 1, imageData: new Uint8Array([255, 0, 0]) };
+    const preview = { width: 1, height: 1, orientation: 1, imageData: new Uint8Array([255, 0, 0]) };
     const output = appendEmbeddedThumbnailIfd(base, preview);
     const outputView = new DataView(output.buffer);
     const nextIfdOffset = outputView.getUint32(34, true);

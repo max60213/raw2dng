@@ -37,7 +37,7 @@ export function appendEmbeddedThumbnailIfd(dngBytes: Uint8Array, preview: Embedd
     tag(259, 3, 1, packShorts([1])),
     tag(262, 3, 1, packShorts([2])),
     tag(273, 4, 1, packLongs([imageOffset])),
-    tag(274, 3, 1, packShorts([1])),
+    tag(274, 3, 1, packShorts([preview.orientation || 1])),
     tag(277, 3, 1, packShorts([3])),
     tag(278, 4, 1, packLongs([preview.height])),
     tag(279, 4, 1, packLongs([preview.imageData.byteLength])),

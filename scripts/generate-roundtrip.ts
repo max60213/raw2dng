@@ -5,7 +5,12 @@ import { GeneratedLibRawAdapter } from "../packages/libraw-wasm/src/bindings/gen
 import { createGeneratedRuntimeNode } from "../packages/libraw-wasm/src/loader/createGeneratedRuntimeNode";
 import { loadGeneratedModule } from "../packages/libraw-wasm/src/loader/loadGeneratedModule";
 import { createAdobeDngAdapterNode } from "../packages/adobe-dng-wasm/src/node";
-import { appendEmbeddedJpegThumbnailIfd, normalizeRawMetadata } from "../packages/raw-core/src";
+import {
+  appendEmbeddedJpegThumbnailIfd,
+  appendEmbeddedThumbnailIfd,
+  createEmbeddedPreview,
+  normalizeRawMetadata
+} from "../packages/raw-core/src";
 import { buildDng } from "../packages/dng-writer/src";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -49,7 +54,8 @@ async function main() {
   });
 
   const adobeAdapter = await createAdobeDngAdapterNode();
-  const blob = adobeAdapter.isAvailable()
+  const useAdobe = adobeAdapter.isAvailable();
+  const blob = useAdobe
     ? await adobeAdapter.encode({
         width: extraction.width,
         height: extraction.height,
@@ -66,17 +72,24 @@ async function main() {
       });
 
   let outputBytes = new Uint8Array(await blob.arrayBuffer());
-  const embeddedThumbnail = await adapter.extractEmbeddedThumbnail(
-    fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
-  ).catch(() => null);
+  if (useAdobe) {
+    const linear = await adapter.extractLinear(
+      fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
+    );
+    outputBytes = appendEmbeddedThumbnailIfd(outputBytes, createEmbeddedPreview(linear));
+  } else {
+    const embeddedThumbnail = await adapter.extractEmbeddedThumbnail(
+      fixture.buffer.slice(fixture.byteOffset, fixture.byteOffset + fixture.byteLength)
+    ).catch(() => null);
 
-  if (embeddedThumbnail) {
-    outputBytes = appendEmbeddedJpegThumbnailIfd(outputBytes, {
-      width: embeddedThumbnail.width,
-      height: embeddedThumbnail.height,
-      orientation: embeddedThumbnail.orientation,
-      jpegData: embeddedThumbnail.data
-    });
+    if (embeddedThumbnail) {
+      outputBytes = appendEmbeddedJpegThumbnailIfd(outputBytes, {
+        width: embeddedThumbnail.width,
+        height: embeddedThumbnail.height,
+        orientation: embeddedThumbnail.orientation,
+        jpegData: embeddedThumbnail.data
+      });
+    }
   }
 
   const outputBuffer = Buffer.from(outputBytes.buffer.slice(outputBytes.byteOffset, outputBytes.byteOffset + outputBytes.byteLength) as ArrayBuffer);
@@ -94,7 +107,7 @@ async function main() {
         make: extraction.metadata.make,
         model: extraction.metadata.model,
         outputBytes: outputBuffer.length,
-        backend: adobeAdapter.isAvailable() ? "adobe" : "legacy"
+        backend: useAdobe ? "adobe" : "legacy"
       },
       null,
       2
@@ -104,7 +117,7 @@ async function main() {
 
 function resolveOutputPath(sourcePath: string, outputArg: string | undefined): string {
   if (!outputArg) {
-    const outputName = `${path.basename(sourcePath).replace(/\.[^.]+$/, "")}-adobe-prototype.dng`;
+    const outputName = `${path.basename(sourcePath).replace(/\.[^.]+$/, "")}.dng`;
     return path.resolve(repoRoot, "tests/expected", outputName);
   }
 

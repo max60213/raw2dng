@@ -1,7 +1,12 @@
 import { createAdobeDngAdapter } from "../../../adobe-dng-wasm/src";
 import { buildDng } from "../../../dng-writer/src";
 import { createLibRawAdapter } from "../../../libraw-wasm/src";
-import { appendEmbeddedJpegThumbnailIfd, normalizeRawMetadata } from "../../../raw-core/src";
+import {
+  appendEmbeddedJpegThumbnailIfd,
+  appendEmbeddedThumbnailIfd,
+  createEmbeddedPreview,
+  normalizeRawMetadata
+} from "../../../raw-core/src";
 import type { WorkerRequest, WorkerResponse } from "../protocol/messages";
 
 let adobeAdapterPromise: ReturnType<typeof createAdobeDngAdapter> | null = null;
@@ -77,8 +82,6 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         message: backend === "adobe" ? "Building DNG with Adobe prototype" : "Building DNG"
       });
 
-      const preview = await adapter.extractEmbeddedThumbnail(message.bytes).catch(() => null);
-
       let blob: Blob;
       if (backend === "adobe") {
         try {
@@ -109,13 +112,23 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         });
       }
 
-      if (preview) {
-        const outputBytes = appendEmbeddedJpegThumbnailIfd(new Uint8Array(await blob.arrayBuffer()), {
-          width: preview.width,
-          height: preview.height,
-          orientation: preview.orientation,
-          jpegData: preview.data
-        });
+      let outputBytes: Uint8Array | null = null;
+      if (backend === "adobe") {
+        const preview = createEmbeddedPreview(await adapter.extractLinear(message.bytes));
+        outputBytes = appendEmbeddedThumbnailIfd(new Uint8Array(await blob.arrayBuffer()), preview);
+      } else {
+        const preview = await adapter.extractEmbeddedThumbnail(message.bytes).catch(() => null);
+        if (preview) {
+          outputBytes = appendEmbeddedJpegThumbnailIfd(new Uint8Array(await blob.arrayBuffer()), {
+            width: preview.width,
+            height: preview.height,
+            orientation: preview.orientation,
+            jpegData: preview.data
+          });
+        }
+      }
+
+      if (outputBytes) {
         const outputBuffer = outputBytes.buffer.slice(outputBytes.byteOffset, outputBytes.byteOffset + outputBytes.byteLength) as ArrayBuffer;
         blob = new Blob([outputBuffer], { type: blob.type || "image/x-adobe-dng" });
       }
@@ -124,7 +137,7 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
         type: "success",
         jobId: message.jobId,
         fileName: message.fileName,
-        outputName: message.fileName.replace(/\.[^.]+$/, backend === "adobe" ? "-adobe-prototype.dng" : ".dng"),
+        outputName: toDngName(message.fileName),
         probe,
         blob,
         backend
@@ -138,4 +151,8 @@ export function createWorkerHandler(postMessageFn: (message: WorkerResponse) => 
       });
     }
   };
+}
+
+function toDngName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, "") + ".dng";
 }

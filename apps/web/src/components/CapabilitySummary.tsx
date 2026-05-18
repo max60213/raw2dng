@@ -19,7 +19,7 @@ export function CapabilitySummary({ capability }: CapabilitySummaryProps) {
           <dd>{capability.maxConcurrentJobs}</dd>
         </div>
         <div>
-          <dt>Batch size</dt>
+          <dt>Suggested batch</dt>
           <dd>{capability.maxBatchItems}</dd>
         </div>
         <div>

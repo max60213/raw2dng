@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { createZipArchive } from "./createZipArchive";
 import {
   createQueueWindow,
   createTask,
@@ -59,7 +60,6 @@ export function useConversionController() {
           }
 
           if (message.type === "success") {
-            activeJobIdsRef.current.delete(message.jobId);
             return {
               ...task,
               status: "complete",
@@ -70,7 +70,6 @@ export function useConversionController() {
             };
           }
 
-          activeJobIdsRef.current.delete(message.jobId);
           return {
             ...task,
             status: "error",
@@ -81,6 +80,10 @@ export function useConversionController() {
         })
       );
 
+      if (message.type === "success" || message.type === "failure") {
+        activeJobIdsRef.current.delete(message.jobId);
+      }
+
       pumpQueue(worker, capability, queueRef.current, activeJobIdsRef.current, setTasks);
     };
 
@@ -90,10 +93,9 @@ export function useConversionController() {
   }, [capability]);
 
   function addFiles(files: File[]) {
-    const limited = files.slice(0, capability.maxBatchItems);
     const nextTasks: ConversionTask[] = [];
 
-    limited.forEach((file) => {
+    files.forEach((file) => {
       const task = createTask(file);
       const gate = gateFile(file, capability);
 
@@ -131,10 +133,39 @@ export function useConversionController() {
       return;
     }
 
-    const url = URL.createObjectURL(task.outputBlob);
+    downloadBlob(task.outputBlob, task.outputFileName);
+  }
+
+  async function downloadAllCompletedTasks() {
+    const completedTasks = tasks.filter((task) => task.outputBlob && task.outputFileName);
+    if (completedTasks.length === 0) {
+      return;
+    }
+
+    const usedNames = new Set<string>();
+    const completedEntries = completedTasks.map((task) => ({
+      task,
+      name: makeUniqueFileName(task.outputFileName!, usedNames)
+    }));
+    const entries = await Promise.all(
+      completedEntries.map(async ({ task, name }) => {
+        const bytes = new Uint8Array(await task.outputBlob!.arrayBuffer());
+        return {
+          name,
+          data: bytes
+        };
+      })
+    );
+
+    const zip = createZipArchive(entries);
+    downloadBlob(zip, `raw2dng-${formatTimestamp(new Date())}.zip`);
+  }
+
+  function downloadBlob(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = task.outputFileName;
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -145,8 +176,33 @@ export function useConversionController() {
     runtimeStatus,
     runtimeMessage,
     addFiles,
-    downloadTask
+    downloadTask,
+    downloadAllCompletedTasks
   };
+}
+
+function makeUniqueFileName(fileName: string, usedNames: Set<string>): string {
+  if (!usedNames.has(fileName)) {
+    usedNames.add(fileName);
+    return fileName;
+  }
+
+  const dotIndex = fileName.lastIndexOf(".");
+  const base = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName;
+  const extension = dotIndex > 0 ? fileName.slice(dotIndex) : "";
+  let index = 2;
+  let nextName = `${base}-${index}${extension}`;
+  while (usedNames.has(nextName)) {
+    index += 1;
+    nextName = `${base}-${index}${extension}`;
+  }
+  usedNames.add(nextName);
+  return nextName;
+}
+
+function formatTimestamp(date: Date): string {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
 function pumpQueue(

@@ -5,7 +5,7 @@ import { TaskList } from "@web/components/TaskList";
 import { useConversionController } from "@web/app/useConversionController";
 
 export function App() {
-  const { capability, tasks, runtimeStatus, runtimeMessage, addFiles, downloadTask } = useConversionController();
+  const { capability, tasks, runtimeStatus, runtimeMessage, addFiles, downloadTask, downloadAllCompletedTasks } = useConversionController();
 
   return (
     <main className="app-shell">
@@ -21,7 +21,7 @@ export function App() {
       <RuntimeBanner status={runtimeStatus} message={runtimeMessage} />
       <CapabilitySummary capability={capability} />
       <Dropzone disabled={runtimeStatus !== "ready"} onFiles={addFiles} />
-      <TaskList tasks={tasks} onDownload={downloadTask} />
+      <TaskList tasks={tasks} onDownload={downloadTask} onDownloadAll={downloadAllCompletedTasks} />
     </main>
   );
 }

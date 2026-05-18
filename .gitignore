@@ -3,6 +3,7 @@
 node_modules/
 dist/
 .tools/
+.codex/
 tests/expected/*.dng
 dng_sdk*.zip
 packages/adobe-dng-wasm/vendor/dng_sdk_1_7_1/

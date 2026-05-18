@@ -3,9 +3,10 @@ import type { ConversionTask } from "@raw-core";
 interface TaskListProps {
   tasks: ConversionTask[];
   onDownload: (task: ConversionTask) => void;
+  onDownloadAll: () => void;
 }
 
-export function TaskList({ tasks, onDownload }: TaskListProps) {
+export function TaskList({ tasks, onDownload, onDownloadAll }: TaskListProps) {
   if (tasks.length === 0) {
     return (
       <section className="panel">
@@ -15,11 +16,18 @@ export function TaskList({ tasks, onDownload }: TaskListProps) {
     );
   }
 
+  const completedCount = tasks.filter((task) => task.outputBlob && task.outputFileName).length;
+
   return (
     <section className="panel">
       <div className="panel-heading">
-        <h2>Queue</h2>
-        <span>{tasks.length} task(s)</span>
+        <div>
+          <h2>Queue</h2>
+          <span className="muted">{tasks.length} task(s)</span>
+        </div>
+        <button className="secondary-button" type="button" disabled={completedCount === 0} onClick={onDownloadAll}>
+          Download all ZIP{completedCount > 0 ? ` (${completedCount})` : ""}
+        </button>
       </div>
       <div className="task-list">
         {tasks.map((task) => (
